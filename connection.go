@@ -105,6 +105,8 @@ func (c *Connection) Writer() {
 		return nil
 	})
 
+	defer c.conn.Close()
+
 	for {
 
 		select {
