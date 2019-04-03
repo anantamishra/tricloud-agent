@@ -6,6 +6,7 @@ import (
 	"log"
 
 	cmd "github.com/indrenicloud/tricloud-agent/commands"
+	"github.com/indrenicloud/tricloud-server/core"
 )
 
 // Worker coroutine, it recives packet, decodes it and runs functions commandbuff
@@ -18,7 +19,7 @@ func Worker(ctx context.Context, In, Out chan []byte) {
 
 			go func() {
 
-				msg := cmd.MessageFormat{}
+				msg := core.MessageFormat{}
 
 				_ = json.Unmarshal(inData, &msg)
 
@@ -27,7 +28,7 @@ func Worker(ctx context.Context, In, Out chan []byte) {
 					log.Println("Command not implemented")
 					return
 				}
-				outMsg := cmd.MessageFormat{
+				outMsg := core.MessageFormat{
 					Receiver: msg.Receiver,
 					CmdType:  msg.CmdType,
 					Arguments: map[string]string{

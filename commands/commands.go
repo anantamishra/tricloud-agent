@@ -3,11 +3,12 @@ package commands
 import (
 	"fmt"
 
-	"github.com/indrenicloud/tricloud-server/broker/core"
+	"github.com/indrenicloud/tricloud-server/core"
 	"github.com/shirou/gopsutil/mem"
 )
 
 func init() {
+	CommandBuffer = make(map[core.CommandType]CommandFunc)
 	registerCommands()
 }
 

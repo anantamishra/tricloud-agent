@@ -42,7 +42,7 @@ const (
 // NewConnection is constructor
 func NewConnection(ctx context.Context, In, Out chan []byte, ErrorChannel chan struct{}) *Connection {
 
-	u := url.URL{Scheme: "ws", Host: *addr, Path: "/ws"}
+	u := url.URL{Scheme: "ws", Host: *addr, Path: "/websocket/456456"}
 	log.Printf("connecting to %s", u.String())
 
 	c, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
