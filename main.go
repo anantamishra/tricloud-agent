@@ -9,7 +9,7 @@ var WAITTIME time.Duration = 2 * time.Second
 
 func main() {
 	In := make(chan []byte)
-	Out := make(chan []byte)
+	Out := make(chan []byte, 10)
 
 	ErrorChannel := make(chan struct{})
 

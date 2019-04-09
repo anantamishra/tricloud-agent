@@ -21,6 +21,7 @@ func registerCommands() {
 
 	CommandBuffer = map[core.CommandType]CommandFunc{
 		core.CMD_SYSTEM_INFO: SystemInfo,
+		core.CMD_TERMINAL:    Terminal,
 	}
 }
 
