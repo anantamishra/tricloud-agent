@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"sync"
+	"time"
 
 	"github.com/indrenicloud/tricloud-server/core"
 	"github.com/kr/pty"
@@ -39,7 +40,18 @@ func Terminal(msg *core.MessageFormat, out chan []byte) {
 }
 
 func unregisterTerminal(id core.UID) {
-	//pass TODO
+
+	// todo lock
+	term, ok := terminals[id]
+	if !ok {
+		log.Println("terminal already cancelled")
+		return
+	}
+	if term.ctx.Err() == nil {
+		term.ctxFunc()
+	}
+	delete(terminals, id)
+
 }
 
 var terinalLock *sync.Mutex
@@ -98,10 +110,10 @@ func (t *terminal) run() {
 
 	//cleanup on exit
 	defer func() {
+		unregisterTerminal(t.ownerConnID)
 		t.cmd.Process.Kill()
 		t.cmd.Process.Wait()
 		t.tty.Close()
-		unregisterTerminal(t.ownerConnID)
 	}()
 
 	rCtx, _ := context.WithCancel(t.ctx)
@@ -116,7 +128,7 @@ func (t *terminal) run() {
 				log.Println("error reading from terminal:", err)
 				return
 			}
-			//construct msg with buf[:read]
+
 			log.Println("sending bytes")
 			t.out <- ConstructMessage(t.ownerConnID, core.CMD_TERMINAL, []string{string(buf[:read])})
 
@@ -128,15 +140,20 @@ func (t *terminal) run() {
 		}
 	}()
 
+	timer := time.NewTimer(time.Minute * 1)
+
 	for {
 
 		select {
 		case _ = <-t.ctx.Done():
 			return
 		case data := <-t.inData:
+			timer.Reset(time.Minute * 1)
 			t.tty.Write(data)
 		case _ = <-t.resize:
 			//pass
+		case _ = <-timer.C:
+			return
 		}
 
 	}
