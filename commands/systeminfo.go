@@ -11,11 +11,15 @@ import (
 // SystemInfo gives system info of machine
 func SystemInfo(msg *core.MessageFormat, out chan []byte) {
 
-	for i := 0; i < 10; i++ {
+	for {
 		v, _ := mem.VirtualMemory()
 		sysinfo := fmt.Sprintf("Total: %v, Free:%v, UsedPercent:%f%%\n", v.Total, v.Free, v.UsedPercent)
 		out <- ConstructMessage(msg.ReceiverConnid, msg.CmdType, []string{sysinfo})
-		time.Sleep(5 * time.Second)
+		time.Sleep(1 * time.Second)
 	}
+
+}
+
+func HostInfo(msg *core.MessageFormat, out chan []byte) {
 
 }
