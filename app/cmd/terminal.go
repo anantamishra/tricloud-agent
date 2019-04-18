@@ -2,12 +2,12 @@ package cmd
 
 import (
 	"context"
-	"log"
 	"os"
 	"os/exec"
 	"sync"
 	"time"
 
+	"github.com/indrenicloud/tricloud-agent/app/logg"
 	"github.com/indrenicloud/tricloud-agent/wire"
 	"github.com/kr/pty"
 )
@@ -17,7 +17,7 @@ import (
 func Terminal(rawdata []byte, out chan []byte) {
 
 	//terinalLock.Lock()
-	log.Println("got a lock")
+	logg.Log("got a lock")
 	//defer terinalLock.Unlock()
 	//defer log.Println("freed lock")
 	termdata := &wire.TermData{}
@@ -36,7 +36,7 @@ func Terminal(rawdata []byte, out chan []byte) {
 		return
 	}
 
-	log.Println("almost sending to terminal ")
+	logg.Log("almost sending to terminal ")
 	term.inData <- []byte(termdata.Data)
 
 }
@@ -46,7 +46,7 @@ func unregisterTerminal(id wire.UID) {
 	// todo lock
 	term, ok := terminals[id]
 	if !ok {
-		log.Println("terminal already cancelled")
+		logg.Log("terminal already cancelled")
 		return
 	}
 	if term.ctx.Err() == nil {
@@ -89,7 +89,7 @@ func newTerminal(uid wire.UID, outchannel chan []byte) *terminal {
 	c := exec.Command("bash")
 	tty, err := pty.Start(c)
 	if err != nil {
-		log.Println("couldnot create terminal", err)
+		logg.Log("couldnot create terminal", err)
 		return nil
 	}
 
@@ -127,11 +127,11 @@ func (t *terminal) run() {
 			read, err := t.tty.Read(buf)
 			if err != nil {
 				// notify error may be
-				log.Println("error reading from terminal:", err)
+				logg.Log("error reading from terminal:", err)
 				return
 			}
 
-			log.Println("sending bytes")
+			logg.Log("sending bytes")
 
 			h := wire.NewHeader(t.ownerConnID, wire.CMD_TERMINAL, wire.AgentToUser)
 			outbyte := wire.AttachHeader(h, buf[:read])

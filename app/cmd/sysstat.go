@@ -1,9 +1,9 @@
 package cmd
 
 import (
-	"log"
 	"time"
 
+	"github.com/indrenicloud/tricloud-agent/app/logg"
 	"github.com/indrenicloud/tricloud-agent/wire"
 	"github.com/shirou/gopsutil/mem"
 )
@@ -13,7 +13,7 @@ var sysinforunning bool
 // SystemStatus gives system status of machine
 func SystemStatus(rawdata []byte, out chan []byte) {
 	if sysinforunning {
-		log.Println("already systemstatus running")
+		logg.Log("already systemstatus running")
 		return
 	}
 
