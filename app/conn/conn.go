@@ -31,6 +31,12 @@ func NewConnection(ctx context.Context, In, Out chan []byte, ErrorChannel chan s
 	u := url.URL{Scheme: "ws", Host: *addr, Path: "/websocket/456456"}
 	logg.Log("connecting to :", u.String())
 
+	// check if this is first connection
+	// if so register agent and save returned uuid
+	// and update systeminfo
+	// then  do actual connection
+	// otherwise do actual connection
+
 	c, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
 	if err != nil {
 		logg.Log("ERROR", "dial", err)
