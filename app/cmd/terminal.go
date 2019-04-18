@@ -1,4 +1,4 @@
-package commands
+package cmd
 
 import (
 	"context"
@@ -8,38 +8,40 @@ import (
 	"sync"
 	"time"
 
-	"github.com/indrenicloud/tricloud-server/core"
+	"github.com/indrenicloud/tricloud-agent/wire"
 	"github.com/kr/pty"
 )
 
 // Terminal implements the command func signature and all terminal related
 // logic starts from here
-func Terminal(msg *core.MessageFormat, out chan []byte) {
+func Terminal(rawdata []byte, out chan []byte) {
 
 	//terinalLock.Lock()
 	log.Println("got a lock")
 	//defer terinalLock.Unlock()
 	//defer log.Println("freed lock")
+	termdata := &wire.TermData{}
 
-	term, ok := terminals[msg.ReceiverConnid]
+	header, err := wire.Decode(rawdata, termdata)
+	if err != nil {
+		return
+	}
+
+	term, ok := terminals[header.Connid]
 
 	if !ok {
-		term = newTerminal(msg.ReceiverConnid, out)
-		terminals[msg.ReceiverConnid] = term
+		term = newTerminal(header.Connid, out)
+		terminals[header.Connid] = term
 		term.run()
 		return
 	}
 
-	data, ok := msg.Arguments["data"]
 	log.Println("almost sending to terminal ")
-	if ok {
-		log.Println("almost sending to terminal ")
-		term.inData <- []byte(data)
-	}
+	term.inData <- []byte(termdata.Data)
 
 }
 
-func unregisterTerminal(id core.UID) {
+func unregisterTerminal(id wire.UID) {
 
 	// todo lock
 	term, ok := terminals[id]
@@ -55,11 +57,11 @@ func unregisterTerminal(id core.UID) {
 }
 
 var terinalLock *sync.Mutex
-var terminals map[core.UID]*terminal
+var terminals map[wire.UID]*terminal
 
 func init() {
 	terinalLock = &sync.Mutex{}
-	terminals = make(map[core.UID]*terminal)
+	terminals = make(map[wire.UID]*terminal)
 }
 
 type windowinfo struct {
@@ -71,7 +73,7 @@ type windowinfo struct {
 }
 
 type terminal struct {
-	ownerConnID core.UID
+	ownerConnID wire.UID
 	out         chan []byte
 	inData      chan []byte
 	resize      chan interface{}
@@ -81,7 +83,7 @@ type terminal struct {
 	tty         *os.File
 }
 
-func newTerminal(uid core.UID, outchannel chan []byte) *terminal {
+func newTerminal(uid wire.UID, outchannel chan []byte) *terminal {
 	//c := exec.Command("/bin/bash", "-l")
 	//c.Env = append(os.Environ(), "TERM=xterm")
 	c := exec.Command("bash")
@@ -130,7 +132,11 @@ func (t *terminal) run() {
 			}
 
 			log.Println("sending bytes")
-			t.out <- ConstructMessage(t.ownerConnID, core.CMD_TERMINAL, []string{string(buf[:read])})
+
+			h := wire.NewHeader(t.ownerConnID, wire.CMD_TERMINAL, wire.AgentToUser)
+			outbyte := wire.AttachHeader(h, buf[:read])
+
+			t.out <- outbyte
 
 			select {
 			case _ = <-rCtx.Done():

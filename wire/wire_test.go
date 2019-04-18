@@ -11,21 +11,21 @@ func TestHeader(t *testing.T) {
 
 	connid := UID(12)
 	cmdtype := CommandType(93)
-
-	packet := AttachHeader(connid, cmdtype, UserToServer, mybody)
-	header := GetHeader(packet)
+	h := NewHeader(connid, cmdtype, UserToServer)
+	packet := AttachHeader(h, mybody)
+	header, _ := GetHeader(packet)
 
 	t.Logf("%d", packet)
 	t.Logf("%+v", header)
 
-	if header.Connid != connid {
+	if header.Connid != h.Connid {
 		t.Error("worong connid")
 	}
 
-	if header.CmdType != cmdtype {
+	if header.CmdType != h.CmdType {
 		t.Error("worong msgtype")
 	}
-	if header.Flow != UserToServer {
+	if header.Flow != h.Flow {
 		t.Error("worong flow")
 	}
 }

@@ -1,13 +1,13 @@
-package main
+package conn
 
 import (
 	"context"
 	"flag"
 	"log"
 	"net/url"
-	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/indrenicloud/tricloud-agent/app/logg"
 )
 
 // Connection encapsulates websocket conn and related stuff
@@ -25,29 +25,15 @@ type Connection struct {
 
 var addr = flag.String("addr", "localhost:8081", "http service address")
 
-const (
-	// Time allowed to write a message to the peer.
-	WriteWait = 10 * time.Second
-
-	// Time allowed to read the next pong message from the peer.
-	PongWait = 60 * time.Second
-
-	// Send pings to peer with this period. Must be less than pongWait.
-	PingPeriod = (PongWait * 9) / 10
-
-	// Maximum message size allowed from peer.
-	MaxMessageSize = 512
-)
-
 // NewConnection is constructor
 func NewConnection(ctx context.Context, In, Out chan []byte, ErrorChannel chan struct{}) *Connection {
 
 	u := url.URL{Scheme: "ws", Host: *addr, Path: "/websocket/456456"}
-	log.Printf("connecting to %s", u.String())
+	logg.Log("connecting to :", u.String())
 
 	c, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
 	if err != nil {
-		log.Fatal("dial:", err)
+		logg.Log("ERROR", "dial", err)
 		return nil
 	}
 
@@ -65,26 +51,25 @@ func NewConnection(ctx context.Context, In, Out chan []byte, ErrorChannel chan s
 }
 
 // Reader reads message/command from conn and gives to worker
-func (c *Connection) Reader() {
+func (c *Connection) reader() {
 
 	for {
 
 		_, message, err := c.conn.ReadMessage()
 
-		log.Println("reading connection")
+		logg.Log("reading connection")
 
 		if err != nil {
 			log.Println("read:", err)
 			c.ErrorChannel <- struct{}{}
 			return
 		}
-		log.Printf("recv: %s", message)
+		logg.Log("recv:", message)
 
 		c.In <- message //sending to worker coroutine
 
 		select {
-		// checking if someone want to close reader
-		case _ = <-c.readerctx.Done():
+		case _ = <-c.readerctx.Done(): // checking if someone want to close reader
 			return
 		default:
 		}
@@ -92,41 +77,23 @@ func (c *Connection) Reader() {
 	}
 }
 
-func (c *Connection) Writer() {
-
-	ticker := time.NewTicker(PongWait)
-
-	defer ticker.Stop()
-
-	c.conn.SetPongHandler(func(appData string) error {
-		ticker.Stop()
-		ticker = time.NewTicker(PongWait)
-
-		return nil
-	})
+func (c *Connection) writer() {
 
 	defer c.conn.Close()
 
 	for {
 
 		select {
-		// checking if someone want to close writer
-		case _ = <-c.writerctx.Done():
+		case _ = <-c.writerctx.Done(): // checking if someone want to close writer
 			return
 		case sendData := <-c.Out:
-			log.Println("writing connection")
-			err := c.conn.WriteMessage(websocket.TextMessage, []byte(sendData))
-			if err != nil {
-				log.Println("write:", err)
-				c.ErrorChannel <- struct{}{}
-				return
 
-			}
-		case _ = <-ticker.C:
-			log.Println("Pinging server")
-			err := c.conn.WriteMessage(websocket.PingMessage, nil)
+			logg.Log("Writing to connection")
+
+			err := c.conn.WriteMessage(websocket.TextMessage, []byte(sendData))
+
 			if err != nil {
-				log.Println("write:", err)
+				logg.Log("Write Error:", err)
 				c.ErrorChannel <- struct{}{}
 				return
 
@@ -138,6 +105,12 @@ func (c *Connection) Writer() {
 }
 
 func (c *Connection) Run() {
-	go c.Reader()
-	go c.Writer()
+	logg.Log("Writing Reader, Writer coroutines")
+	go c.reader()
+	go c.writer()
+}
+
+func (c *Connection) close() {
+	logg.Log("Closing connection")
+	c.conn.Close()
 }
