@@ -3,6 +3,9 @@ package app
 import (
 	"context"
 	"time"
+
+	"github.com/indrenicloud/tricloud-agent/app/conn"
+	"github.com/indrenicloud/tricloud-agent/app/worker"
 )
 
 var WAITTIME time.Duration = 2 * time.Second
@@ -15,7 +18,7 @@ func Run() {
 
 	workerctx, workerCancel := context.WithCancel(context.Background())
 	defer workerCancel()
-	go Worker(workerctx, In, Out)
+	go worker.Worker(workerctx, In, Out)
 
 	for {
 
@@ -24,7 +27,7 @@ func Run() {
 
 		//new connection
 		connctx, connCancel := context.WithCancel(context.Background())
-		Conn := NewConnection(connctx, In, Out, ErrorChannel)
+		Conn := conn.NewConnection(connctx, In, Out, ErrorChannel)
 		Conn.Run()
 
 		select {

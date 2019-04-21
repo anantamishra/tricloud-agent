@@ -2,8 +2,12 @@ package conn
 
 import (
 	"context"
+	"encoding/json"
 	"flag"
+	"fmt"
+	"io/ioutil"
 	"log"
+	"net/http"
 	"net/url"
 
 	"github.com/gorilla/websocket"
@@ -19,23 +23,52 @@ type Connection struct {
 	// reader/writer notifies main of error through ErrorChannel
 	ErrorChannel chan struct{}
 	// reader/writer contex
-	readerctx context.Context
-	writerctx context.Context
+	readerctx    context.Context
+	readctxFunc  context.CancelFunc
+	writerctx    context.Context
+	writectxFunc context.CancelFunc
 }
 
 var addr = flag.String("addr", "localhost:8081", "http service address")
 
-// NewConnection is constructor
 func NewConnection(ctx context.Context, In, Out chan []byte, ErrorChannel chan struct{}) *Connection {
 
-	u := url.URL{Scheme: "ws", Host: *addr, Path: "/websocket/456456"}
-	logg.Log("connecting to :", u.String())
+	cf := GetConfig()
 
-	// check if this is first connection
-	// if so register agent and save returned uuid
-	// and update systeminfo
-	// then  do actual connection
-	// otherwise do actual connection
+	if cf.UUID == "" {
+		if cf.ApiKey == "" {
+			panic("Need api key")
+		}
+
+		client := &http.Client{}
+		req, _ := http.NewRequest("PUT", "http://localhost:8081/registeragent", nil)
+		req.Header.Add("Api-key", cf.ApiKey)
+
+		resp, err := client.Do(req)
+
+		if err != nil {
+			panic("server error")
+		}
+		body, err := ioutil.ReadAll(resp.Body)
+
+		resbody := map[string]string{}
+		json.Unmarshal(body, &resbody)
+
+		uid := resbody["data"]
+		logg.Log("My ID:", uid)
+
+		if uid == "" {
+			panic("Server didnot register us, every man for himself")
+		}
+
+		cf.UUID = uid
+		SaveConfig(cf)
+	}
+
+	updateSystemInfo(cf.UUID)
+
+	u := url.URL{Scheme: "ws", Host: *addr, Path: fmt.Sprintf("/websocket/%s", cf.UUID)}
+	logg.Log("connecting to :", u.String())
 
 	c, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
 	if err != nil {
@@ -43,8 +76,8 @@ func NewConnection(ctx context.Context, In, Out chan []byte, ErrorChannel chan s
 		return nil
 	}
 
-	newctx1, _ := context.WithCancel(ctx)
-	newctx2, _ := context.WithCancel(ctx)
+	newctx1, ctx1func := context.WithCancel(ctx)
+	newctx2, ctx2func := context.WithCancel(ctx)
 
 	return &Connection{
 		conn:         c,
@@ -52,7 +85,9 @@ func NewConnection(ctx context.Context, In, Out chan []byte, ErrorChannel chan s
 		Out:          Out,
 		ErrorChannel: ErrorChannel,
 		readerctx:    newctx1,
+		readctxFunc:  ctx1func,
 		writerctx:    newctx2,
+		writectxFunc: ctx2func,
 	}
 }
 

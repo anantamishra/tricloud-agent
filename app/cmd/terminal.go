@@ -36,8 +36,10 @@ func Terminal(rawdata []byte, out chan []byte) {
 		return
 	}
 
-	logg.Log("almost sending to terminal ")
+	logg.Log("Almost sending to terminal")
 	term.inData <- []byte(termdata.Data)
+	logg.Log("Sent to terminal ")
+	return
 
 }
 
