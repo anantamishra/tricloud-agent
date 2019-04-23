@@ -11,20 +11,19 @@ type CommandType byte
 type UID uint16
 
 const (
-	AgentToServer FlowType = iota
-	UserToServer
-	AgentToUser
+	AgentToUser FlowType = iota
 	UserToAgent
 	BroadcastUsers
 )
 
 const (
 	CMD_SERVER_HELLO CommandType = iota
-	CMD_SYSTEMSTAT
+	CMD_SYSTEM_STAT
 	CMD_TERMINAL
 	CMD_TASKMGR
-	CMD_LISTSERVICES
-	CMD_SERVICEACTION
+	CMD_PROCESS_ACTION
+	CMD_LIST_SERVICES
+	CMD_SERVICE_ACTION
 	CMD_BUILTIN_MAX
 )
 
@@ -91,12 +90,12 @@ func Decode(raw []byte, out interface{}) (*Header, error) {
 // structs which will represent new command/message format
 
 type SysStatCmd struct {
-	Interval int //duration in sec
-	Timeout  int // 0 means no timeouts
+	Interval int32 //duration in sec
+	Timeout  int32 // 0 means no timeouts
 }
 
 type SysStatData struct {
-	CPUPercent   []uint8
+	CPUPercent   []float64
 	TotalMem     uint64
 	AvailableMem uint64
 }
@@ -121,15 +120,37 @@ type TaskMgrData struct {
 	Uptime    int64
 	AvgLoad   int
 	Battery   uint8
-	Processes []ProcessInfo
+	Processes []*ProcessInfo
 }
 
 type ProcessInfo struct {
-	PID       int
-	ParentPID int
+	PID       int32
 	USER      string
-	CPU       int
-	MEM       int
-	UpTime    int64
+	CPU       float64
+	MEM       uint64
+	UpTime    float64
 	Command   string
+	ChildPIDS []int32
+}
+
+type ProcessActionCmd struct {
+	PID    int32
+	Action string
+	ID     int32
+}
+
+type ProcessActionData struct {
+	Output string
+	ID     int32
+}
+
+type ListServicesCmd struct {
+}
+
+type ListServicesMsg struct {
+	Services []*ServiceInfo
+}
+
+type ServiceInfo struct {
+	Name string
 }

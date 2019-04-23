@@ -18,7 +18,7 @@ func registerCommands() {
 	// internal commands
 
 	CommandBuffer = map[wire.CommandType]CommandFunc{
-		wire.CMD_SYSTEMSTAT: SystemStatus,
-		wire.CMD_TERMINAL:   Terminal,
+		wire.CMD_SYSTEM_STAT: SystemStatus,
+		wire.CMD_TERMINAL:    Terminal,
 	}
 }
