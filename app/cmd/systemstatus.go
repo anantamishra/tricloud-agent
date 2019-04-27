@@ -23,28 +23,32 @@ func SystemStatus(rawdata []byte, out chan []byte) {
 		return
 	}
 
-	s := wire.SysStatCmd{}
+	s := &wire.SysStatCmd{}
 	wire.Decode(rawdata, s)
 	sysinforunning = true
 	defer func() { sysinforunning = false }()
 
-	var counter int32
+	counter := int64(0)
 	for {
-		// 0 means no timeouts
-		if s.Timeout != 0 {
-			counter = counter + (s.Interval * int32(time.Second))
-			if counter > s.Timeout {
-				return
-			}
-		}
+
+		logg.Log("counter:", counter)
+
 		rb, err := wire.Encode(wire.UID(0),
 			wire.CMD_SYSTEM_STAT,
 			wire.BroadcastUsers,
-			systemStatus(time.Duration(s.Interval)))
+			systemStatus(time.Duration(s.Interval)*time.Second))
 		if err == nil {
 			out <- rb
 		}
-		time.Sleep(time.Duration(s.Interval) * time.Second)
+		//time.Sleep(time.Duration(s.Interval) * time.Second)
+
+		if s.Timeout != 0 {
+			counter = counter + s.Interval
+			if counter >= (s.Timeout * s.Interval) {
+				logg.Log("Exiting status emitting func")
+				return
+			}
+		}
 	}
 
 }

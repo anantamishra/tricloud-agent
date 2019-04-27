@@ -105,7 +105,7 @@ func (c *Connection) reader() {
 			c.ErrorChannel <- struct{}{}
 			return
 		}
-		logg.Log("recv:", message)
+		logg.Log("recv:", string(message))
 
 		c.In <- message //sending to worker coroutine
 

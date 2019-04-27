@@ -90,8 +90,8 @@ func Decode(raw []byte, out interface{}) (*Header, error) {
 // structs which will represent new command/message format
 
 type SysStatCmd struct {
-	Interval int32 //duration in sec
-	Timeout  int32 // 0 means no timeouts
+	Interval int64 //duration in sec
+	Timeout  int64 // 0 means no timeouts
 }
 
 type SysStatData struct {
