@@ -41,7 +41,7 @@ func NewConnection(ctx context.Context, In, Out chan []byte, ErrorChannel chan s
 		}
 
 		client := &http.Client{}
-		req, _ := http.NewRequest("PUT", "http://localhost:8081/registeragent", nil)
+		req, _ := http.NewRequest("POST", "http://localhost:8081/registeragent", nil)
 		req.Header.Add("Api-key", cf.ApiKey)
 
 		resp, err := client.Do(req)

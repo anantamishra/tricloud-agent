@@ -19,7 +19,7 @@ func updateSystemInfo(uuid string) {
 	}
 	url := fmt.Sprintf("http://localhost:8081/updatesysinfo/%s", uuid)
 
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(rawb))
+	req, err := http.NewRequest("PUT", url, bytes.NewBuffer(rawb))
 	req.Header.Set("Content-Type", "application/json")
 
 	client := &http.Client{}
