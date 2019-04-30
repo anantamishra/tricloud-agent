@@ -14,6 +14,7 @@ const (
 	AgentToUser FlowType = iota
 	UserToAgent
 	BroadcastUsers
+	DefaultFlow
 )
 
 const (
@@ -24,6 +25,7 @@ const (
 	CMD_PROCESS_ACTION
 	CMD_LIST_SERVICES
 	CMD_SERVICE_ACTION
+	CMD_EXIT
 	CMD_BUILTIN_MAX
 )
 
@@ -153,4 +155,7 @@ type ListServicesMsg struct {
 
 type ServiceInfo struct {
 	Name string
+}
+
+type Exit struct {
 }

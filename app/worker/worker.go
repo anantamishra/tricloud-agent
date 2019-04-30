@@ -3,6 +3,7 @@ package worker
 import (
 	"context"
 	"log"
+	"os"
 
 	"github.com/indrenicloud/tricloud-agent/wire"
 
@@ -20,6 +21,9 @@ func Worker(ctx context.Context, In, Out chan []byte) {
 		case inData := <-In:
 			header, _ := wire.GetHeader(inData)
 
+			if header.CmdType == wire.CMD_EXIT {
+				os.Exit(0)
+			}
 			cmdFunc, ok := cmd.CommandBuffer[header.CmdType]
 			if !ok {
 				log.Println("Command not implemented")
