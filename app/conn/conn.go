@@ -131,7 +131,7 @@ func (c *Connection) writer() {
 
 			logg.Log("Writing to connection")
 
-			err := c.conn.WriteMessage(websocket.TextMessage, []byte(sendData))
+			err := c.conn.WriteMessage(websocket.BinaryMessage, []byte(sendData))
 
 			if err != nil {
 				logg.Log("Write Error:", err)
