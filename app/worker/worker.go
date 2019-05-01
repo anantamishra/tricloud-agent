@@ -2,12 +2,12 @@ package worker
 
 import (
 	"context"
-	"log"
 	"os"
 
 	"github.com/indrenicloud/tricloud-agent/wire"
 
 	"github.com/indrenicloud/tricloud-agent/app/cmd"
+	"github.com/indrenicloud/tricloud-agent/app/logg"
 )
 
 // Worker coroutine, it recives packet, decodes it and runs functions commandbuff
@@ -24,9 +24,12 @@ func Worker(ctx context.Context, In, Out chan []byte) {
 			if header.CmdType == wire.CMD_EXIT {
 				os.Exit(0)
 			}
+
+			logg.Log("processing server cmd")
+
 			cmdFunc, ok := cmd.CommandBuffer[header.CmdType]
 			if !ok {
-				log.Println("Command not implemented")
+				logg.Log("Command not implemented")
 				break
 			}
 			go cmdFunc(inData, Out)
