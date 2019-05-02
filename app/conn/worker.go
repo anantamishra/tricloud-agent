@@ -1,4 +1,4 @@
-package worker
+package conn
 
 import (
 	"context"
@@ -12,13 +12,13 @@ import (
 
 // Worker coroutine, it recives packet, decodes it and runs functions commandbuff
 // bashed on command type
-func Worker(ctx context.Context, In, Out chan []byte) {
+func (c *Connection) Worker() {
 
 	for {
 		select {
-		case _ = <-ctx.Done():
+		case _ = <-c.workerctx.Done():
 			return
-		case inData := <-In:
+		case inData := <-c.In:
 			header, _ := wire.GetHeader(inData)
 
 			if header.CmdType == wire.CMD_EXIT {
@@ -32,7 +32,8 @@ func Worker(ctx context.Context, In, Out chan []byte) {
 				logg.Log("Command not implemented")
 				break
 			}
-			go cmdFunc(inData, Out)
+
+			go cmdFunc(inData, c.Out, context.WithCancel(c.workerctx))
 		}
 	}
 

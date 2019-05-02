@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"time"
 
 	"github.com/indrenicloud/tricloud-agent/app/logg"
@@ -9,7 +10,7 @@ import (
 	"github.com/shirou/gopsutil/process"
 )
 
-func Taskmanager(rawdata []byte, out chan []byte) {
+func Taskmanager(rawdata []byte, out chan []byte, ctx context.Context) {
 
 	tcmd := &wire.TaskMgrCmd{}
 	head, err := wire.Decode(rawdata, tcmd)

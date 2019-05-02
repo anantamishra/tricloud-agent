@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"errors"
 
 	"github.com/indrenicloud/tricloud-agent/app/logg"
@@ -8,7 +9,7 @@ import (
 	"github.com/shirou/gopsutil/process"
 )
 
-func ProcessAction(rawdata []byte, out chan []byte) {
+func ProcessAction(rawdata []byte, out chan []byte, ctx context.Context) {
 
 	paCmd := &wire.ProcessActionCmd{}
 	head, err := wire.Decode(rawdata, paCmd)

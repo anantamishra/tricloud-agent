@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"time"
 
 	"github.com/shirou/gopsutil/cpu"
@@ -17,7 +18,7 @@ func init() {
 }
 
 // SystemStatus gives system status of machine
-func SystemStatus(rawdata []byte, out chan []byte) {
+func SystemStatus(rawdata []byte, out chan []byte, ctx context.Context) {
 	if sysinforunning {
 		logg.Log("already systemstatus running")
 		return

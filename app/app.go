@@ -4,43 +4,41 @@ import (
 	"context"
 	"time"
 
+	"github.com/indrenicloud/tricloud-agent/app/logg"
+
 	"github.com/indrenicloud/tricloud-agent/app/conn"
-	"github.com/indrenicloud/tricloud-agent/app/worker"
 )
 
-var WAITTIME time.Duration = 2 * time.Second
+var WAITTIME time.Duration = 10 * time.Second
 
+// Run runs
 func Run() {
-	In := make(chan []byte)
-	Out := make(chan []byte, 10)
+
+	conn.RegisterAgent()
 
 	ErrorChannel := make(chan struct{})
-
-	workerctx, workerCancel := context.WithCancel(context.Background())
-	defer workerCancel()
-	go worker.Worker(workerctx, In, Out)
-
+	var Connection *conn.Connection
 	for {
 
-		//since both reader/writer can send error ...clearing just in case
-		clearChannel(ErrorChannel)
+		Connection = conn.NewConnection(context.Background(), ErrorChannel)
+		if Connection == nil {
+			goto sleep
+		}
+		Connection.Run()
 
-		//new connection
-		connctx, connCancel := context.WithCancel(context.Background())
-		Conn := conn.NewConnection(connctx, In, Out, ErrorChannel)
-		Conn.Run()
+		clearChannel(ErrorChannel)
 
 		select {
 		case <-ErrorChannel:
-			connCancel()
-
-			//since both reader/writer can send error ...clearing just in case
-			clearChannel(ErrorChannel)
-
-			time.Sleep(WAITTIME)
+			Connection.Close()
+			goto sleep
 		}
-
+	sleep:
+		logg.Log("Connection Error sleeping before reconnecting")
+		time.Sleep(WAITTIME)
+		clearChannel(ErrorChannel)
 	}
+
 }
 
 func clearChannel(c chan struct{}) {

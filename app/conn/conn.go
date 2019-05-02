@@ -2,13 +2,8 @@ package conn
 
 import (
 	"context"
-	"encoding/json"
-	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
-	"net/http"
-	"net/url"
 
 	"github.com/gorilla/websocket"
 	"github.com/indrenicloud/tricloud-agent/app/logg"
@@ -23,54 +18,23 @@ type Connection struct {
 	// reader/writer notifies main of error through ErrorChannel
 	ErrorChannel chan struct{}
 	// reader/writer contex
-	readerctx    context.Context
-	readctxFunc  context.CancelFunc
-	writerctx    context.Context
-	writectxFunc context.CancelFunc
+	readerctx     context.Context
+	readctxFunc   context.CancelFunc
+	writerctx     context.Context
+	writectxFunc  context.CancelFunc
+	workerctx     context.Context
+	workerctxFunc context.CancelFunc
 }
 
-var addr = flag.String("addr", "localhost:8081", "http service address")
-
-func NewConnection(ctx context.Context, In, Out chan []byte, ErrorChannel chan struct{}) *Connection {
-
+func NewConnection(ctx context.Context, ErrorChannel chan struct{}) *Connection {
 	cf := GetConfig()
 
-	if cf.UUID == "" {
-		if cf.ApiKey == "" {
-			panic("Need api key")
-		}
+	//u := url.URL{Scheme: "ws", Host: cf.Url, Path: fmt.Sprintf("/websocket/%s", cf.UUID)}
+	u := fmt.Sprintf("ws://%s/websocket/%s", cf.Url, cf.UUID)
+	logg.Log("connecting to :", u)
 
-		client := &http.Client{}
-		req, _ := http.NewRequest("POST", "http://localhost:8081/registeragent", nil)
-		req.Header.Add("Api-key", cf.ApiKey)
+	c, _, err := websocket.DefaultDialer.Dial(u, nil)
 
-		resp, err := client.Do(req)
-
-		if err != nil {
-			panic("server error")
-		}
-		body, err := ioutil.ReadAll(resp.Body)
-
-		resbody := map[string]string{}
-		json.Unmarshal(body, &resbody)
-
-		uid := resbody["data"]
-		logg.Log("My ID:", uid)
-
-		if uid == "" {
-			panic("Server didnot register us, every man for himself")
-		}
-
-		cf.UUID = uid
-		SaveConfig(cf)
-	}
-
-	updateSystemInfo(cf.UUID)
-
-	u := url.URL{Scheme: "ws", Host: *addr, Path: fmt.Sprintf("/websocket/%s", cf.UUID)}
-	logg.Log("connecting to :", u.String())
-
-	c, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
 	if err != nil {
 		logg.Log("ERROR", "dial", err)
 		return nil
@@ -78,21 +42,26 @@ func NewConnection(ctx context.Context, In, Out chan []byte, ErrorChannel chan s
 
 	newctx1, ctx1func := context.WithCancel(ctx)
 	newctx2, ctx2func := context.WithCancel(ctx)
+	newctx3, ctx3func := context.WithCancel(ctx)
 
 	return &Connection{
-		conn:         c,
-		In:           In,
-		Out:          Out,
-		ErrorChannel: ErrorChannel,
-		readerctx:    newctx1,
-		readctxFunc:  ctx1func,
-		writerctx:    newctx2,
-		writectxFunc: ctx2func,
+		conn:          c,
+		In:            make(chan []byte),
+		Out:           make(chan []byte),
+		ErrorChannel:  ErrorChannel,
+		readerctx:     newctx1,
+		readctxFunc:   ctx1func,
+		writerctx:     newctx2,
+		writectxFunc:  ctx2func,
+		workerctx:     newctx3,
+		workerctxFunc: ctx3func,
 	}
 }
 
 // Reader reads message/command from conn and gives to worker
 func (c *Connection) reader() {
+
+	defer c.Close()
 
 	for {
 
@@ -120,7 +89,7 @@ func (c *Connection) reader() {
 
 func (c *Connection) writer() {
 
-	defer c.conn.Close()
+	defer c.Close()
 
 	for {
 
@@ -131,7 +100,7 @@ func (c *Connection) writer() {
 
 			logg.Log("Writing to connection")
 
-			err := c.conn.WriteMessage(websocket.BinaryMessage, []byte(sendData))
+			err := c.conn.WriteMessage(websocket.BinaryMessage, sendData)
 
 			if err != nil {
 				logg.Log("Write Error:", err)
@@ -146,12 +115,24 @@ func (c *Connection) writer() {
 }
 
 func (c *Connection) Run() {
-	logg.Log("Writing Reader, Writer coroutines")
+	logg.Log("Running Reader, Writer coroutines")
 	go c.reader()
 	go c.writer()
+	go c.Worker()
 }
 
-func (c *Connection) close() {
+func (c *Connection) Close() {
 	logg.Log("Closing connection")
-	c.conn.Close()
+	if c.readerctx.Err() == nil {
+		c.readctxFunc()
+	}
+
+	if c.writerctx.Err() == nil {
+		c.writectxFunc()
+	}
+
+	if c.conn != nil {
+		c.conn.Close()
+		c.conn = nil
+	}
 }

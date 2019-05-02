@@ -14,7 +14,7 @@ import (
 
 // Terminal implements the command func signature and all terminal related
 // logic starts from here
-func Terminal(rawdata []byte, out chan []byte) {
+func Terminal(rawdata []byte, out chan []byte, ctx context.Context) {
 
 	//terinalLock.Lock()
 	logg.Log("got a lock")
