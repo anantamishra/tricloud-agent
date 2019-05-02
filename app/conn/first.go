@@ -23,7 +23,7 @@ func RegisterAgent() {
 		}
 
 		client := &http.Client{}
-		url := fmt.Sprintf("http://%s/registeragent/", cf.Url)
+		url := fmt.Sprintf("http://%s/registeragent", cf.Url)
 		//var url = cf.Url + "registeragent"
 		req, _ := http.NewRequest("POST", url, nil)
 		req.Header.Add("Api-key", cf.ApiKey)
