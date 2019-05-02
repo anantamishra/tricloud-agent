@@ -32,8 +32,8 @@ func (c *Connection) Worker() {
 				logg.Log("Command not implemented")
 				break
 			}
-
-			go cmdFunc(inData, c.Out, context.WithCancel(c.workerctx))
+			newctx1, _ := context.WithCancel(c.workerctx)
+			go cmdFunc(inData, c.Out, newctx1)
 		}
 	}
 
