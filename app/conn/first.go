@@ -12,7 +12,7 @@ import (
 	"github.com/indrenicloud/tricloud-agent/app/logg"
 )
 
-func RegisterAgent() {
+func RegisterAgent() bool {
 
 	cf := GetConfig()
 
@@ -31,12 +31,21 @@ func RegisterAgent() {
 		resp, err := client.Do(req)
 
 		if err != nil {
-			panic("server error")
+			logg.Log("server error")
+			os.Exit(1)
 		}
 		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			logg.Log(err)
+			os.Exit(1)
+		}
 
 		resbody := make(map[string]string)
-		json.Unmarshal(body, &resbody)
+		err = json.Unmarshal(body, &resbody)
+		if err != nil {
+			logg.Log(err)
+			os.Exit(1)
+		}
 
 		uid := resbody["data"]
 		logg.Log("My ID:", uid)
@@ -49,16 +58,16 @@ func RegisterAgent() {
 		SaveConfig()
 	}
 
-	updateSystemInfo()
+	return updateSystemInfo()
 
 }
 
-func updateSystemInfo() {
+func updateSystemInfo() bool {
 	cf := GetConfig()
 	rawb := cmd.GetSystemInfo()
 	if rawb == nil {
 		logg.Log("couldnot get systeminfo")
-		return
+		return false
 	}
 	//url := cf.Url + fmt.Sprintf("updatesysinfo/%s", cf.UUID)
 	url := fmt.Sprintf("http://%s/updatesysinfo/%s", cf.Url, cf.UUID)
@@ -69,14 +78,15 @@ func updateSystemInfo() {
 	resp, err := client.Do(req)
 	if err != nil {
 		logg.Log(err)
-		return
+		return false
 	}
 
 	body, err := ioutil.ReadAll(resp.Body)
 	defer resp.Body.Close()
 	if err != nil {
 		logg.Log(err)
-		return
+		return false
 	}
 	logg.Log(string(body))
+	return true
 }

@@ -14,11 +14,13 @@ var WAITTIME time.Duration = 10 * time.Second
 // Run runs
 func Run() {
 
-	conn.RegisterAgent()
-
 	ErrorChannel := make(chan struct{})
 	var Connection *conn.Connection
+	registered := false
 	for {
+		if !registered {
+			registered = conn.RegisterAgent()
+		}
 
 		Connection = conn.NewConnection(context.Background(), ErrorChannel)
 		if Connection == nil {
