@@ -135,8 +135,11 @@ func (t *terminal) run() {
 
 			logg.Log("sending bytes")
 
-			h := wire.NewHeader(t.ownerConnID, wire.CMD_TERMINAL, wire.AgentToUser)
-			outbyte := wire.AttachHeader(h, buf[:read])
+			body := &wire.TermData{
+				Data: string(buf[:read]),
+			}
+			outbyte, _ := wire.Encode(t.ownerConnID, wire.CMD_TERMINAL, wire.AgentToUser, body)
+			//outbyte := wire.AttachHeader(h, )
 
 			t.out <- outbyte
 

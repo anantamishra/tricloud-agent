@@ -65,7 +65,7 @@ func systemStatus(interval time.Duration) *wire.SysStatData {
 		sysstat.TotalMem = v.Total
 	}
 
-	percent, err := cpu.Percent(interval, false)
+	percent, err := cpu.Percent(interval, true)
 
 	if err == nil {
 		sysstat.CPUPercent = percent

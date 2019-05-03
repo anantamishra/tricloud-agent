@@ -102,11 +102,12 @@ type SysStatData struct {
 	AvailableMem uint64
 }
 
+/*
 type TermCmd struct {
 	Command string // "" defaults to bash
 	Args    []string
 	EnvVars []string
-}
+}*/
 
 type TermData struct {
 	Data       string
