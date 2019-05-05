@@ -46,7 +46,8 @@ func NewHeader(connid UID, cmdtype CommandType, flow FlowType) *Header {
 func AttachHeader(header *Header, body []byte) []byte {
 
 	b := make([]byte, 4)
-	binary.LittleEndian.PutUint16(b, uint16(header.Connid))
+	//binary.LittleEndian.PutUint16(b, uint16(header.Connid))
+	binary.BigEndian.PutUint16(b, uint16(header.Connid))
 	b[2] = byte(header.CmdType)
 	b[3] = byte(header.Flow)
 
@@ -63,7 +64,8 @@ func GetHeader(raw []byte) (*Header, []byte) {
 	offset := len(raw) - int(unsafe.Sizeof(Header{}))
 	headerbytes := raw[offset:]
 
-	h.Connid = UID(binary.LittleEndian.Uint16(headerbytes[:2]))
+	//h.Connid = UID(binary.LittleEndian.Uint16(headerbytes[:2]))
+	h.Connid = UID(binary.BigEndian.Uint16(headerbytes[:2]))
 	h.CmdType = CommandType(headerbytes[2])
 	h.Flow = FlowType(headerbytes[3])
 	return h, raw[:offset]
