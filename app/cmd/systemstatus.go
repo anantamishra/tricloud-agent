@@ -5,6 +5,8 @@ import (
 	"time"
 
 	"github.com/shirou/gopsutil/cpu"
+	"github.com/shirou/gopsutil/disk"
+	"github.com/shirou/gopsutil/net"
 
 	"github.com/indrenicloud/tricloud-agent/app/logg"
 	"github.com/indrenicloud/tricloud-agent/wire"
@@ -70,5 +72,19 @@ func systemStatus(interval time.Duration) *wire.SysStatData {
 	if err == nil {
 		sysstat.CPUPercent = percent
 	}
+
+	diskusage, err := disk.Usage("/")
+	if err == nil {
+		sysstat.DiskTotal = diskusage.Total
+		sysstat.DiskFree = diskusage.Free
+	}
+
+	netcounts, err := net.IOCounters(false)
+	if err == nil {
+		sysstat.NetSentbytes = netcounts[0].BytesSent
+		sysstat.NetRecvbytes = netcounts[0].BytesRecv
+	}
+	sysstat.TimeStamp = time.Now().UnixNano()
+
 	return sysstat
 }

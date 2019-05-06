@@ -99,9 +99,14 @@ type SysStatCmd struct {
 }
 
 type SysStatData struct {
+	TimeStamp    int64
 	CPUPercent   []float64
 	TotalMem     uint64
 	AvailableMem uint64
+	NetSentbytes uint64
+	NetRecvbytes uint64
+	DiskTotal    uint64
+	DiskFree     uint64
 }
 
 /*
