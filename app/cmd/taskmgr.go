@@ -10,30 +10,40 @@ import (
 	"github.com/shirou/gopsutil/process"
 )
 
-func Taskmanager(rawdata []byte, out chan []byte, ctx context.Context) {
+var taskmanagerrunning bool
 
+func Taskmanager(rawdata []byte, out chan []byte, ctx context.Context) {
+	logg.Log("Taskmanger service received data")
 	tcmd := &wire.TaskMgrCmd{}
 	head, err := wire.Decode(rawdata, tcmd)
-
+	if taskmanagerrunning {
+		return
+	}
+	taskmanagerrunning = true
 	if err != nil {
 		logg.Log("invalid data")
+		return
 	}
 
-	var counter int
-	for {
+	defer func() {}()
 
-		if tcmd.Timeout != 0 {
-			counter = counter + (tcmd.Interval * int(time.Second))
-			if counter > tcmd.Timeout {
-				return
-			}
-		}
+	counter := int64(0)
+	for {
 
 		tdata := taskmanager()
 
 		outbyte, err := wire.Encode(head.Connid, wire.CMD_TASKMGR, wire.BroadcastUsers, tdata)
-		if err != nil {
+		if err == nil {
 			out <- outbyte
+		}
+
+		if tcmd.Timeout != 0 {
+			counter = counter + tcmd.Interval
+
+			if counter >= (tcmd.Timeout * tcmd.Interval) {
+				logg.Log("Exiting taskmanager service, timeout")
+				return
+			}
 		}
 
 		time.Sleep(time.Duration(tcmd.Interval) * time.Second)

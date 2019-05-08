@@ -24,5 +24,6 @@ func registerCommands() {
 	CommandBuffer = map[wire.CommandType]CommandFunc{
 		wire.CMD_SYSTEM_STAT: SystemStatus,
 		wire.CMD_TERMINAL:    Terminal,
+		wire.CMD_TASKMGR:     Taskmanager,
 	}
 }

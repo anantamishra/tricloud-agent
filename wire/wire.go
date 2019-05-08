@@ -122,8 +122,8 @@ type TermData struct {
 }
 
 type TaskMgrCmd struct {
-	Interval int //duration in msec
-	Timeout  int // 0 means default timeout will be used
+	Interval int64 //duration in msec
+	Timeout  int64 // 0 means default timeout will be used
 }
 
 type TaskMgrData struct {
