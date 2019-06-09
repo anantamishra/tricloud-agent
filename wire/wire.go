@@ -167,3 +167,7 @@ type ServiceInfo struct {
 
 type Exit struct {
 }
+
+type TokenMessage struct {
+	Token string
+}
