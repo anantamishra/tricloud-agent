@@ -26,7 +26,8 @@ const (
 	CMD_LIST_SERVICES
 	CMD_SERVICE_ACTION
 	CMD_EXIT
-	CMD_GCM_TOKEN // register gcm tokens from browser to server
+	CMD_GCM_TOKEN // register gcm or notification tokens from browser to server
+	CMD_AGENTS_NO
 	CMD_BUILTIN_MAX
 )
 
@@ -170,4 +171,9 @@ type Exit struct {
 
 type TokenMessage struct {
 	Token string
+}
+
+// used by server to give connid and list of agents online
+type AgentsCountMsg struct {
+	Agents map[string]UID
 }
