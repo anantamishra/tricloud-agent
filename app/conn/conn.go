@@ -91,6 +91,14 @@ func (c *Connection) writer() {
 
 	defer c.Close()
 
+	pingChan := make(chan struct{})
+
+	c.conn.SetPingHandler(func(d string) error {
+		pingChan <- struct{}{}
+		logg.Debug("ping")
+		return nil
+	})
+
 	for {
 
 		select {
@@ -101,6 +109,15 @@ func (c *Connection) writer() {
 			logg.Log("Writing to connection")
 
 			err := c.conn.WriteMessage(websocket.BinaryMessage, sendData)
+
+			if err != nil {
+				logg.Log("Write Error:", err)
+				c.ErrorChannel <- struct{}{}
+				return
+
+			}
+		case <-pingChan:
+			err := c.conn.WriteMessage(websocket.PongMessage, []byte("👍"))
 
 			if err != nil {
 				logg.Log("Write Error:", err)

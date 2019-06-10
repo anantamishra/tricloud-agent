@@ -9,5 +9,10 @@ func Log(v ...interface{}) {
 		return
 	}
 
+	//log.Println(v...)
+}
+
+func Debug(v ...interface{}) {
+
 	log.Println(v...)
 }
