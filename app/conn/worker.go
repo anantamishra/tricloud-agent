@@ -25,7 +25,7 @@ func (c *Connection) Worker() {
 				os.Exit(0)
 			}
 
-			logg.Log("processing server cmd")
+			logg.Debug("processing server cmd")
 
 			cmdFunc, ok := cmd.CommandBuffer[header.CmdType]
 			if !ok {

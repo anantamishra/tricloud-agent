@@ -11,6 +11,8 @@ import (
 
 func ProcessAction(rawdata []byte, out chan []byte, ctx context.Context) {
 
+	logg.Debug("HERE")
+
 	paCmd := &wire.ProcessActionCmd{}
 	head, err := wire.Decode(rawdata, paCmd)
 	if err != nil {
