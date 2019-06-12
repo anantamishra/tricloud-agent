@@ -37,6 +37,7 @@ func processAction(pid int32, action string) *wire.ProcessActionData {
 	case "pause":
 		//pass
 	}
+	logg.Debug(paData)
 	return paData
 }
 

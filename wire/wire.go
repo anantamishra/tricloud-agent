@@ -28,6 +28,7 @@ const (
 	CMD_EXIT
 	CMD_GCM_TOKEN // register gcm or notification tokens from browser to server
 	CMD_AGENTS_NO
+	CMD_EVENTS
 	CMD_BUILTIN_MAX
 )
 
