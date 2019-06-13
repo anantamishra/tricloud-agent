@@ -9,6 +9,7 @@ import (
 )
 
 func ListDirectory(rawdata []byte, out chan []byte, ctx context.Context) {
+	logg.Debug("listing dir called")
 
 	ld := &wire.ListDirReq{}
 	head, err := wire.Decode(rawdata, ld)
@@ -18,12 +19,13 @@ func ListDirectory(rawdata []byte, out chan []byte, ctx context.Context) {
 	}
 	ldr := listDirectory(ld.Path)
 
-	bytes, err := wire.Encode(head.Connid, head.CmdType, head.Flow, ldr)
+	bytes, err := wire.Encode(head.Connid, head.CmdType, wire.AgentToUser, ldr)
 	if err != nil {
 		logg.Debug("Could not encode listdir reply")
 		return
 	}
 	out <- bytes
+	logg.Debug("Outed listof dir")
 }
 
 func listDirectory(path string) *wire.ListDirReply {

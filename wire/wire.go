@@ -30,6 +30,7 @@ const (
 	CMD_AGENTS_NO
 	CMD_EVENTS
 	CMD_FM_LISTDIR
+	CMD_SYSTEM_ACTION
 	CMD_BUILTIN_MAX
 )
 
@@ -198,3 +199,9 @@ type FSNode struct {
 }
 
 // listdir in filemanager end
+
+// shutdown and reboot for now
+type SystemActionReq struct {
+	Action  string
+	Options []string
+}
