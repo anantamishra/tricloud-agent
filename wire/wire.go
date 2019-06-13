@@ -29,6 +29,7 @@ const (
 	CMD_GCM_TOKEN // register gcm or notification tokens from browser to server
 	CMD_AGENTS_NO
 	CMD_EVENTS
+	CMD_FILE_MANAGER
 	CMD_BUILTIN_MAX
 )
 
@@ -177,4 +178,9 @@ type TokenMessage struct {
 // used by server to give connid and list of agents online
 type AgentsCountMsg struct {
 	Agents map[string]UID
+}
+
+type FileManager struct {
+	Type string
+	Data interface{}
 }
