@@ -29,7 +29,7 @@ const (
 	CMD_GCM_TOKEN // register gcm or notification tokens from browser to server
 	CMD_AGENTS_NO
 	CMD_EVENTS
-	CMD_FILE_MANAGER
+	CMD_FM_LISTDIR
 	CMD_BUILTIN_MAX
 )
 
@@ -180,7 +180,21 @@ type AgentsCountMsg struct {
 	Agents map[string]UID
 }
 
-type FileManager struct {
-	Type string
-	Data interface{}
+// listdir in filemanager
+type ListDirReq struct {
+	Path    string
+	Options []string
 }
+
+type ListDirReply struct {
+	Path    string
+	FSNodes []FSNode
+}
+
+type FSNode struct {
+	Name string
+	Type string
+	Size int64
+}
+
+// listdir in filemanager end

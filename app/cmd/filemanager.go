@@ -8,25 +8,9 @@ import (
 	"github.com/spf13/afero"
 )
 
-type ListDirReq struct {
-	Path    string
-	Options []string
-}
-
-type ListDirReply struct {
-	Path    string
-	FSNodes []FSNode
-}
-
-type FSNode struct {
-	Name string
-	Type string
-	Size int64
-}
-
 func ListDirectory(rawdata []byte, out chan []byte, ctx context.Context) {
 
-	ld := &ListDirReq{}
+	ld := &wire.ListDirReq{}
 	head, err := wire.Decode(rawdata, ld)
 	if err != nil {
 		logg.Debug("Could not decode listdir cmd")
@@ -42,17 +26,17 @@ func ListDirectory(rawdata []byte, out chan []byte, ctx context.Context) {
 	out <- bytes
 }
 
-func listDirectory(path string) *ListDirReply {
+func listDirectory(path string) *wire.ListDirReply {
 	var afs = afero.NewOsFs()
 
 	fss, _ := afero.ReadDir(afs, path)
 
-	dirlistReply := &ListDirReply{}
+	dirlistReply := &wire.ListDirReply{}
 	dirlistReply.Path = path
 
 	for _, fs := range fss {
 
-		fsn := FSNode{}
+		fsn := wire.FSNode{}
 		fsn.Name = fs.Name()
 
 		if fs.IsDir() {
