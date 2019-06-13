@@ -33,6 +33,11 @@ func SystemStatus(rawdata []byte, out chan []byte, ctx context.Context) {
 
 	counter := int64(0)
 	for {
+		select {
+		case _ = <-ctx.Done():
+			return
+		default:
+		}
 
 		logg.Log("counter:", counter)
 

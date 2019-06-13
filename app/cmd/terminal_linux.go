@@ -12,6 +12,8 @@ import (
 	"github.com/kr/pty"
 )
 
+const terminalTimeout = 1 * time.Hour
+
 // Terminal implements the command func signature and all terminal related
 // logic starts from here
 func Terminal(rawdata []byte, out chan []byte, ctx context.Context) {
@@ -151,7 +153,7 @@ func (t *terminal) run() {
 		}
 	}()
 
-	timer := time.NewTimer(time.Minute * 1)
+	timer := time.NewTimer(terminalTimeout * 1)
 
 	for {
 
@@ -159,7 +161,7 @@ func (t *terminal) run() {
 		case _ = <-t.ctx.Done():
 			return
 		case data := <-t.inData:
-			timer.Reset(time.Minute * 1)
+			timer.Reset(terminalTimeout * 1)
 			t.tty.Write(data)
 		case _ = <-t.resize:
 			//pass

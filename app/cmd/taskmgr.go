@@ -25,10 +25,16 @@ func Taskmanager(rawdata []byte, out chan []byte, ctx context.Context) {
 		return
 	}
 
-	defer func() {}()
+	defer func() { taskmanagerrunning = false }()
 
 	counter := int64(0)
 	for {
+
+		select {
+		case _ = <-ctx.Done():
+			return
+		default:
+		}
 
 		tdata := taskmanager()
 
