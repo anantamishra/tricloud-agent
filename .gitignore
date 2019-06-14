@@ -1,1 +1,5 @@
 config.json
+
+app/cmd/testfolder/b/*
+!app/cmd/testfolder/b/.gitkeep
+
