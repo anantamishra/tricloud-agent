@@ -59,34 +59,17 @@ func listDirectory(path string) *wire.ListDirReply {
 	return dirlistReply
 }
 
-type FmActionReq struct {
-	Action      string
-	Basepath    string
-	Targets     []string
-	Destination string
-	Options     []string
-}
-
-/*
-type FmActionRes struct {
-	Action string
-	Status bool
-	Errors []string
-	Outputs []string
-} */
-type FmActionRes map[string]interface{}
-
 func FmAction(rawdata []byte, out chan []byte, ctx context.Context) {
 	p := logg.Debug
 
-	fmaction := &FmActionReq{}
+	fmaction := &wire.FmActionReq{}
 	head, err := wire.Decode(rawdata, fmaction)
 	if err != nil {
 		p(err)
 		return
 	}
 
-	var response FmActionRes
+	var response wire.FmActionRes
 
 	switch fmaction.Action {
 	case "copy":
@@ -113,8 +96,8 @@ func FmAction(rawdata []byte, out chan []byte, ctx context.Context) {
 	out <- bytes
 }
 
-func actionCopy(req *FmActionReq) FmActionRes {
-	resp := FmActionRes{}
+func actionCopy(req *wire.FmActionReq) wire.FmActionRes {
+	resp := wire.FmActionRes{}
 	resp["action"] = "copy"
 
 	var afs = afero.NewOsFs()

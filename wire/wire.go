@@ -206,3 +206,20 @@ type SystemActionReq struct {
 	Action  string
 	Options []string
 }
+
+type FmActionReq struct {
+	Action      string
+	Basepath    string
+	Targets     []string
+	Destination string
+	Options     []string
+}
+
+/*
+type FmActionRes struct {
+	Action string
+	Status bool
+	Errors []string
+	Outputs []string
+} */
+type FmActionRes map[string]interface{}

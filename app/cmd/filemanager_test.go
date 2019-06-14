@@ -3,6 +3,8 @@ package cmd
 import (
 	"fmt"
 	"testing"
+
+	"github.com/indrenicloud/tricloud-agent/wire"
 )
 
 func TestList(t *testing.T) {
@@ -14,7 +16,7 @@ func TestList(t *testing.T) {
 
 func TestCopy(t *testing.T) {
 
-	ff := &FmActionReq{
+	ff := &wire.FmActionReq{
 		Action:      "copy",
 		Basepath:    "/home/bing/golang/two/src/github.com/indrenicloud/tricloud-agent/app/cmd/testfolder/a",
 		Targets:     []string{"targetfile"},
@@ -25,7 +27,7 @@ func TestCopy(t *testing.T) {
 
 	t.Logf("%+v", ffres)
 
-	ff2 := &FmActionReq{
+	ff2 := &wire.FmActionReq{
 		Action:      "copy",
 		Basepath:    "/home/bing/golang/two/src/github.com/indrenicloud/tricloud-agent/app/cmd/testfolder/a",
 		Targets:     []string{"c"},
