@@ -75,9 +75,9 @@ func FmAction(rawdata []byte, out chan []byte, ctx context.Context) {
 	case "copy":
 		response = actionCopy(fmaction)
 	case "move":
-		//pass
+		response = doMove(fmaction)
 	case "rename":
-		//pass
+		response = doRename(fmaction)
 	case "mkdir":
 		//pass
 	case "delete":
@@ -148,12 +148,7 @@ func actionCopy(req *wire.FmActionReq) wire.FmActionRes {
 	}
 
 	myerrrs := []string{}
-	if myerrrs == nil {
-		panic("FUCK")
-	}
-	if es == nil {
-		panic("FUCK2")
-	}
+
 	for _, e := range es {
 		myerrrs = append(myerrrs, e.Error())
 	}
@@ -253,6 +248,46 @@ func doCopyDir(fs afero.Fs, source, dest string) error {
 		return errors.New(errString)
 	}
 	return nil
+}
+
+func doRename(req *wire.FmActionReq) wire.FmActionRes {
+	// rename works only with one file
+	var resp wire.FmActionRes
+	resp["action"] = "rename"
+	src := path.Join(req.Basepath, req.Targets[0])
+	dest := path.Join(req.Basepath, req.Destination)
+
+	err := os.Rename(src, dest)
+	if err != nil {
+		resp["error"] = []string{err.Error()}
+	} else {
+		resp["error"] = []string{}
+	}
+
+	return resp
+}
+
+func doMove(req *wire.FmActionReq) wire.FmActionRes {
+	// rename works only with one file
+	var resp wire.FmActionRes
+	resp["action"] = "move"
+
+	errorStr := []string{}
+
+	for _, target := range req.Targets {
+		src := path.Join(req.Basepath, target)
+		dest := path.Join(req.Destination, target)
+
+		err := os.Rename(src, dest)
+
+		if err != nil {
+			errorStr = append(errorStr, err.Error())
+		}
+	}
+
+	resp["error"] = errorStr
+
+	return resp
 }
 
 /*
