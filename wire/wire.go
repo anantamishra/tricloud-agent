@@ -189,8 +189,9 @@ type ListDirReq struct {
 }
 
 type ListDirReply struct {
-	Path    string
-	FSNodes []FSNode
+	Path       string
+	FSNodes    []FSNode
+	ParentPath string
 }
 
 type FSNode struct {

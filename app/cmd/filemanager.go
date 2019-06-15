@@ -36,10 +36,27 @@ func ListDirectory(rawdata []byte, out chan []byte, ctx context.Context) {
 func listDirectory(path string) *wire.ListDirReply {
 	var afs = afero.NewOsFs()
 
+	if path == "." {
+		logg.Debug("where is home")
+		home, err := os.UserHomeDir()
+		if err == nil {
+			path = home
+		}
+		logg.Debug(home)
+	}
+
+	file, err := afs.Open(path)
+	if err != nil {
+
+	}
+	logg.Debug(file.Name())
+
 	fss, _ := afero.ReadDir(afs, path)
 
 	dirlistReply := &wire.ListDirReply{}
 	dirlistReply.Path = path
+
+	dirlistReply.ParentPath = filepath.Dir(path)
 
 	for _, fs := range fss {
 
@@ -85,7 +102,9 @@ func FmAction(rawdata []byte, out chan []byte, ctx context.Context) {
 	case "info":
 		//pass
 	case "compress":
-
+		//pass
+	case "hash":
+		//pass
 	}
 	bytes, err := wire.Encode(head.Connid, wire.CMD_FM_ACTION, wire.AgentToUser, response)
 	if err != nil {
