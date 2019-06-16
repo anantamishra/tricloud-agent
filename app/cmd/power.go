@@ -2,12 +2,23 @@ package cmd
 
 import (
 	"context"
-	"syscall"
+
+	"github.com/indrenicloud/tricloud-agent/wire"
 )
 
-
 func SysAction(rawdata []byte, out chan []byte, ctx context.Context) {
-	syscall.Reboot(syscall.LINUX_REBOOT_CMD_POWER_OFF)
-	
-	
+
+	sareq := &wire.SystemActionReq{}
+	_, err := wire.Decode(rawdata, sareq)
+	if err != nil {
+		return
+	}
+
+	switch sareq.Action {
+	case "shutdown":
+		doPoweroff()
+	case "reboot":
+		doReboot()
+	}
+
 }

@@ -27,5 +27,7 @@ func registerCommands() {
 		wire.CMD_TASKMGR:        Taskmanager,
 		wire.CMD_PROCESS_ACTION: ProcessAction,
 		wire.CMD_FM_LISTDIR:     ListDirectory,
+		wire.CMD_SYSTEM_ACTION:  SysAction,
+		wire.CMD_FM_ACTION:      FmAction,
 	}
 }
