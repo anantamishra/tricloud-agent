@@ -7,6 +7,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"fmt"
 
 	"github.com/indrenicloud/tricloud-agent/app/logg"
 	"github.com/indrenicloud/tricloud-agent/wire"
@@ -71,7 +72,7 @@ func listDirectory(path string) *wire.ListDirReply {
 
 func FmAction(rawdata []byte, out chan []byte, ctx context.Context) {
 	p := logg.Debug
-
+	p("__ACTION__")
 	fmaction := &wire.FmActionReq{}
 	head, err := wire.Decode(rawdata, fmaction)
 	if err != nil {
@@ -264,7 +265,7 @@ func doCopyDir(fs afero.Fs, source, dest string) error {
 
 func doRename(req *wire.FmActionReq) wire.FmActionRes {
 	// rename works only with one file
-	var resp wire.FmActionRes
+	resp := wire.FmActionRes{}
 	resp["action"] = "rename"
 	src := path.Join(req.Basepath, req.Targets[0])
 	dest := path.Join(req.Basepath, req.Destination)
@@ -283,7 +284,7 @@ func doRename(req *wire.FmActionReq) wire.FmActionRes {
 
 func doMove(req *wire.FmActionReq) wire.FmActionRes {
 	// rename works only with one file
-	var resp wire.FmActionRes
+	resp := wire.FmActionRes{}
 	resp["action"] = "move"
 
 	errorStr := []string{}
@@ -305,9 +306,9 @@ func doMove(req *wire.FmActionReq) wire.FmActionRes {
 }
 
 func doMkdir(req *wire.FmActionReq) wire.FmActionRes {
-	var resp wire.FmActionRes
+	resp := wire.FmActionRes{}
 	resp["action"] = "mkdir"
-	if len(req.Targets) == 1 {
+	if !(len(req.Targets) == 1) {
 		resp["error"] = []string{"incorrectNoPath"}
 		return resp
 	}
@@ -332,12 +333,10 @@ func doMkdir(req *wire.FmActionReq) wire.FmActionRes {
 
 func doDelete(req *wire.FmActionReq) wire.FmActionRes {
 
-	var resp wire.FmActionRes
+	fmt.Printf("%+v", req)
+
+	resp:= wire.FmActionRes{}
 	resp["action"] = "delete"
-	if len(req.Targets) == 1 {
-		resp["error"] = []string{"incorrectNoPath"}
-		return resp
-	}
 
 	var afs = afero.NewOsFs()
 
