@@ -36,6 +36,9 @@ func ListDirectory(rawdata []byte, out chan []byte, ctx context.Context) {
 func listDirectory(path string) *wire.ListDirReply {
 	var afs = afero.NewOsFs()
 
+	logg.Debug("listing")
+	logg.Debug(path)
+
 	if path == "." {
 		logg.Debug("where is home")
 		home, err := os.UserHomeDir()
@@ -45,11 +48,11 @@ func listDirectory(path string) *wire.ListDirReply {
 		logg.Debug(home)
 	}
 
-	file, err := afs.Open(path)
-	if err != nil {
+	//file, err := afs.Open(path)
+	//if err != nil {
 
-	}
-	logg.Debug(file.Name())
+	//}
+	//logg.Debug(file.Name())
 
 	fss, _ := afero.ReadDir(afs, path)
 
