@@ -36,23 +36,13 @@ func ListDirectory(rawdata []byte, out chan []byte, ctx context.Context) {
 func listDirectory(path string) *wire.ListDirReply {
 	var afs = afero.NewOsFs()
 
-	logg.Debug("listing")
-	logg.Debug(path)
-
 	if path == "." {
-		logg.Debug("where is home")
 		home, err := os.UserHomeDir()
 		if err == nil {
 			path = home
 		}
-		logg.Debug(home)
 	}
-
-	//file, err := afs.Open(path)
-	//if err != nil {
-
-	//}
-	//logg.Debug(file.Name())
+	logg.Debug(path)
 
 	fss, _ := afero.ReadDir(afs, path)
 
@@ -99,9 +89,9 @@ func FmAction(rawdata []byte, out chan []byte, ctx context.Context) {
 	case "rename":
 		response = doRename(fmaction)
 	case "mkdir":
-		//pass
+		response = doMkdir(fmaction)
 	case "delete":
-		//pass
+		response = doDelete(fmaction)
 	case "info":
 		//pass
 	case "compress":
@@ -279,7 +269,9 @@ func doRename(req *wire.FmActionReq) wire.FmActionRes {
 	src := path.Join(req.Basepath, req.Targets[0])
 	dest := path.Join(req.Basepath, req.Destination)
 
-	err := os.Rename(src, dest)
+	var afs = afero.NewOsFs()
+
+	err := afs.Rename(src, dest)
 	if err != nil {
 		resp["error"] = []string{err.Error()}
 	} else {
@@ -312,12 +304,70 @@ func doMove(req *wire.FmActionReq) wire.FmActionRes {
 	return resp
 }
 
-/*
-func Template(req *FmActionReq) FmActionRes {
-	var resp FmActionRes
-	resp["action"] = "templateType"
+func doMkdir(req *wire.FmActionReq) wire.FmActionRes {
+	var resp wire.FmActionRes
+	resp["action"] = "mkdir"
+	if len(req.Targets) == 1 {
+		resp["error"] = []string{"incorrectNoPath"}
+		return resp
+	}
+
+	path := path.Join(req.Basepath, req.Targets[0])
+
+	var afs = afero.NewOsFs()
+	if b, _ := afero.Exists(afs, path); b {
+		resp["error"] = []string{"alreadyExits"}
+		return resp
+	}
+
+	err := afs.Mkdir(path, 0755)
+	if err != nil {
+		resp["error"] = []string{err.Error()}
+		return resp
+	}
+	resp["error"] = []string{}
 
 	return resp
 }
 
-*/
+func doDelete(req *wire.FmActionReq) wire.FmActionRes {
+
+	var resp wire.FmActionRes
+	resp["action"] = "delete"
+	if len(req.Targets) == 1 {
+		resp["error"] = []string{"incorrectNoPath"}
+		return resp
+	}
+
+	var afs = afero.NewOsFs()
+
+	for _, traget := range req.Targets {
+		path := path.Join(req.Basepath, traget)
+
+		isdir, err := afero.IsDir(afs, path)
+
+		if err != nil {
+			resp["error"] = []string{err.Error()}
+			return resp
+		}
+
+		if isdir {
+			err = afs.RemoveAll(path)
+			if err != nil {
+				resp["error"] = []string{err.Error()}
+				return resp
+			}
+		} else {
+			err = afs.Remove(path)
+			if err != nil {
+				resp["error"] = []string{err.Error()}
+				return resp
+			}
+		}
+
+	}
+
+	resp["error"] = []string{}
+
+	return resp
+}
