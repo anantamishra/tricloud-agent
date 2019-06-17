@@ -32,6 +32,9 @@ const (
 	CMD_FM_LISTDIR
 	CMD_FM_ACTION
 	CMD_SYSTEM_ACTION
+	CMD_START_SERVICE
+	CMD_DOWNLOAD_SERVICE
+	CMD_UPLOAD_SERVICE
 	CMD_BUILTIN_MAX
 )
 
@@ -224,3 +227,10 @@ type FmActionRes struct {
 	Outputs []string
 } */
 type FmActionRes map[string]interface{}
+
+type StartServiceReq struct {
+	Interval  int64 //duration in sec
+	Timeout   int64 // 0 means no timeouts
+	Options   []string
+	ServiceID int32 // should be CommandType
+}

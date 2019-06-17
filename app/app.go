@@ -32,11 +32,12 @@ func Run() {
 
 		select {
 		case <-ErrorChannel:
+			logg.Debug("Error channel called")
 			Connection.Close()
 			goto sleep
 		}
 	sleep:
-		logg.Log("Connection Error sleeping before reconnecting")
+		logg.Debug("Connection Error sleeping before reconnecting")
 		time.Sleep(WAITTIME)
 		clearChannel(ErrorChannel)
 	}

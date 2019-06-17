@@ -139,7 +139,7 @@ func (c *Connection) Run() {
 }
 
 func (c *Connection) Close() {
-	logg.Log("Closing connection")
+	logg.Debug("Closing connection")
 	if c.readerctx.Err() == nil {
 		c.readctxFunc()
 	}
