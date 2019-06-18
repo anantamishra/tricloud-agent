@@ -51,31 +51,26 @@ type DownlodMsg struct {
 
 // Down is Downloader service
 type Down struct {
-	fileName  string
-	currOffet int64
-	backRead  int64
-	state     byte
-	cControl  chan ControlSignal
-	out       chan []byte
-	acks      []int64
-	resends   []int64
+	fileName    string
+	currOffet   int64
+	backRead    int64
+	state       byte
+	cControl    chan ControlSignal
+	out         chan []byte
+	pendingAcks int
+	resends     []int64
 }
 
 func newDown(fname string, out chan []byte) *Down {
 
-	ackslice := make([]int64, AckSlots)
-	for i := range ackslice {
-		ackslice[i] = -1
-	}
-
 	return &Down{
-		fileName:  fname,
-		currOffet: 0,
-		backRead:  -1,
-		state:     ReadyToGo,
-		cControl:  make(chan ControlSignal),
-		out:       out,
-		acks:      ackslice,
+		fileName:    fname,
+		currOffet:   0,
+		backRead:    -1,
+		state:       ReadyToGo,
+		cControl:    make(chan ControlSignal),
+		out:         out,
+		pendingAcks: 0,
 	}
 }
 
