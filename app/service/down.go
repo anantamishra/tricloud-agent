@@ -52,8 +52,8 @@ type DownlodMsg struct {
 // Down is Downloader service
 type Down struct {
 	fileName    string
-	currOffet   int64
-	backRead    int64
+	currOffet   int64 // file offset
+	nOffset     int64 // offset used in next read (could be from resend or file)
 	state       byte
 	cControl    chan ControlSignal
 	out         chan []byte
@@ -62,15 +62,20 @@ type Down struct {
 }
 
 func newDown(fname string, out chan []byte) *Down {
+	resend := make([]int64, 10)
+	for i := range resend {
+		resend[i] = -1
+	}
 
 	return &Down{
 		fileName:    fname,
-		currOffet:   0,
-		backRead:    -1,
+		currOffet:   -1,
+		nOffset:     -1,
 		state:       ReadyToGo,
 		cControl:    make(chan ControlSignal),
 		out:         out,
 		pendingAcks: 0,
+		resends:     resend,
 	}
 }
 
@@ -113,7 +118,7 @@ func (d *Down) Run() {
 				break
 			}
 			logg.Debug(err)
-			os.Exit(1)
+			return
 		}
 		// emit here
 		d.packAndSend(fileContent[:n])
@@ -127,10 +132,8 @@ func (d *Down) waitForsignal() bool {
 
 	// check if we have ack slot open
 	// if don't wait just send another packet
-	for _, a := range d.acks {
-		if a == -1 {
-			return false
-		}
+	if d.pendingAcks < AckSlots {
+		return false
 	}
 
 	for {
@@ -139,27 +142,34 @@ func (d *Down) waitForsignal() bool {
 
 			switch c.signal {
 			case Start:
-				return false
-				//
-			case Ack:
-				ack, ok := c.data.(int64)
-				if ok {
-					for i, a := range d.acks {
-						if a == ack {
-							d.acks[i] = -1
-							return false
-						}
-					}
+				if d.state == ReadyToGo {
+					d.state = Running
+					return false
 				}
-				//pass
-			case Resend:
-				_, ok := c.data.(int64)
-				if ok {
-					// add to resend if it doesnot exist
-					// remove pending ack of that offset
-					//
+			case Ack:
+				if d.state == WaitingAck {
+					d.pendingAcks--
+					return false
 				}
 
+			case Resend:
+				r, ok := c.data.(int64)
+				if !ok {
+					break
+				}
+				d.pendingAcks--
+				for _, rs := range d.resends {
+					if rs == r {
+						//already pending
+						return false
+					}
+				}
+				for i, rs := range d.resends {
+					if rs == -1 {
+						d.resends[i] = r
+						return false
+					}
+				}
 				return false
 			case Pause:
 				//
@@ -175,14 +185,22 @@ func (d *Down) waitForsignal() bool {
 }
 
 func (d *Down) nextOffset() {
-	if len(d.resends) == 0 {
-		// seek(d.offset)
-		return
+	for _, rs := range d.resends {
+		if rs != -1 {
+			d.nOffset = rs
+			return
+		}
 	}
-	return
+	d.nOffset = d.currOffet
 }
 
 func (d *Down) packAndSend(b []byte) {
+
+	if d.currOffet == d.nOffset {
+
+		d.currOffet = d.currOffet + int64(len(b))
+	}
+
 	b = pack(b)
 
 }
