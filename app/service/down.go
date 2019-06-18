@@ -2,6 +2,7 @@ package service
 
 import (
 	"bufio"
+	"encoding/binary"
 	"io"
 	"os"
 	"unsafe"
@@ -32,21 +33,15 @@ const (
 	// service states
 	ReadyToGo
 	Running
-	WaitingAck
 	Paused
 	Done
 	QueueFree
 )
 
-type ControlSignal struct {
-	signal byte
-	data   interface{}
-}
-
 type DownlodMsg struct {
-	Control byte
 	Offset  int64
-	id      byte
+	Control byte
+	ID      byte
 }
 
 // Down is Downloader service
@@ -55,13 +50,15 @@ type Down struct {
 	currOffet   int64 // file offset
 	nOffset     int64 // offset used in next read (could be from resend or file)
 	state       byte
-	cControl    chan ControlSignal
+	cControl    chan byte
+	cResend     chan int64
 	out         chan []byte
 	pendingAcks int
 	resends     []int64
+	connid      wire.UID
 }
 
-func newDown(fname string, out chan []byte) *Down {
+func newDown(fname string, out chan []byte, cid wire.UID) *Down {
 	resend := make([]int64, 10)
 	for i := range resend {
 		resend[i] = -1
@@ -72,10 +69,12 @@ func newDown(fname string, out chan []byte) *Down {
 		currOffet:   -1,
 		nOffset:     -1,
 		state:       ReadyToGo,
-		cControl:    make(chan ControlSignal),
+		cControl:    make(chan byte),
+		cResend:     make(chan int64),
 		out:         out,
 		pendingAcks: 0,
 		resends:     resend,
+		connid:      cid,
 	}
 }
 
@@ -109,13 +108,18 @@ func (d *Down) Run() {
 		}
 
 		d.nextOffset()
+		d.nOffset, err = f.Seek(d.nOffset, 0)
+		if err != nil {
+			logg.Debug("could not seek")
+			return
+		}
 
 		n, err := reader.Read(fileContent)
 		if err != nil {
 			if err == io.EOF {
-				// emit here
 				d.packAndSend(fileContent[:n])
-				break
+				d.state = Done
+				continue
 			}
 			logg.Debug(err)
 			return
@@ -124,8 +128,6 @@ func (d *Down) Run() {
 		d.packAndSend(fileContent[:n])
 
 	}
-	// job finished send hash maybe
-	//fmt.Printf("%x", h.Sum(nil))
 }
 
 func (d *Down) waitForsignal() bool {
@@ -133,44 +135,26 @@ func (d *Down) waitForsignal() bool {
 	// check if we have ack slot open
 	// if don't wait just send another packet
 	if d.pendingAcks < AckSlots {
-		return false
+		if d.state != Done {
+			return false
+		}
 	}
 
 	for {
 		select {
 		case c := <-d.cControl:
 
-			switch c.signal {
+			switch c {
 			case Start:
 				if d.state == ReadyToGo {
 					d.state = Running
 					return false
 				}
 			case Ack:
-				if d.state == WaitingAck {
+				if d.pendingAcks != 0 {
 					d.pendingAcks--
 					return false
 				}
-
-			case Resend:
-				r, ok := c.data.(int64)
-				if !ok {
-					break
-				}
-				d.pendingAcks--
-				for _, rs := range d.resends {
-					if rs == r {
-						//already pending
-						return false
-					}
-				}
-				for i, rs := range d.resends {
-					if rs == -1 {
-						d.resends[i] = r
-						return false
-					}
-				}
-				return false
 			case Pause:
 				//
 			case Resume:
@@ -178,6 +162,23 @@ func (d *Down) waitForsignal() bool {
 			case Stop:
 				return true
 			}
+		case r := <-d.cResend:
+			if d.pendingAcks != 0 {
+				d.pendingAcks--
+			}
+			for _, rs := range d.resends {
+				if rs == r {
+					//already pending
+					return false
+				}
+			}
+			for i, rs := range d.resends {
+				if rs == -1 {
+					d.resends[i] = r
+					return false
+				}
+			}
+			return false
 		}
 
 	}
@@ -185,11 +186,13 @@ func (d *Down) waitForsignal() bool {
 }
 
 func (d *Down) nextOffset() {
-	for _, rs := range d.resends {
+	for i, rs := range d.resends {
 		if rs != -1 {
 			d.nOffset = rs
+			d.resends[i] = -1
 			return
 		}
+
 	}
 	d.nOffset = d.currOffet
 }
@@ -199,10 +202,22 @@ func (d *Down) packAndSend(b []byte) {
 	if d.currOffet == d.nOffset {
 
 		d.currOffet = d.currOffet + int64(len(b))
+
 	}
 
-	b = pack(b)
+	b2 := make([]byte, 10)
+	binary.BigEndian.PutUint64(b2, uint64(d.nOffset))
+	b2[8] = File
+	b2[9] = 0
+	b = append(b, b2...)
 
+	head := wire.Header{
+		Connid:  d.connid,
+		CmdType: wire.CMD_DOWNLOAD_SERVICE,
+		Flow:    wire.AgentToUser,
+	}
+	b = wire.AttachHeader(&head, b)
+	d.out <- b
 }
 
 func (d *Down) queueFree() {
@@ -212,8 +227,4 @@ func (d *Down) queueFree() {
 
 func (d *Down) Close() {
 
-}
-
-func pack(b []byte) []byte {
-	return b
 }
