@@ -234,3 +234,8 @@ type StartServiceReq struct {
 	Options   []string
 	ServiceID int32 // should be CommandType
 }
+
+type DownloaderReq struct {
+	Control byte
+	Offset  int64
+}

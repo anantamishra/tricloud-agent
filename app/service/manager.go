@@ -82,3 +82,17 @@ func (m *Manager) Close() {
 		}
 	}
 }
+
+// called by service itself
+func (m *Manager) closeService(sr Servicer) {
+	m.lServices.Lock()
+	defer m.lServices.Unlock()
+	for _, sc := range m.services {
+		for key, s := range sc {
+			if s == sr {
+				delete(sc, key)
+				sr.Close()
+			}
+		}
+	}
+}

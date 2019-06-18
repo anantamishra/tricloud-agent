@@ -47,6 +47,7 @@ type DownlodMsg struct {
 // Down is Downloader service
 type Down struct {
 	fileName    string
+	manager     *Manager
 	currOffet   int64 // file offset
 	nOffset     int64 // offset used in next read (could be from resend or file)
 	state       byte
@@ -58,7 +59,7 @@ type Down struct {
 	connid      wire.UID
 }
 
-func newDown(fname string, out chan []byte, cid wire.UID) *Down {
+func newDown(fname string, m *Manager, out chan []byte, cid wire.UID) *Down {
 	resend := make([]int64, 10)
 	for i := range resend {
 		resend[i] = -1
@@ -66,6 +67,7 @@ func newDown(fname string, out chan []byte, cid wire.UID) *Down {
 
 	return &Down{
 		fileName:    fname,
+		manager:     m,
 		currOffet:   -1,
 		nOffset:     -1,
 		state:       ReadyToGo,
@@ -78,8 +80,17 @@ func newDown(fname string, out chan []byte, cid wire.UID) *Down {
 	}
 }
 
-func (d *Down) Consume([]byte) {
-
+func (d *Down) Consume(b []byte) {
+	dr := wire.DownloaderReq{}
+	_, err := wire.Decode(b, dr)
+	if err != nil {
+		return
+	}
+	if dr.Control == Resend {
+		d.cResend <- dr.Offset
+		return
+	}
+	d.cControl <- dr.Control
 }
 
 func (d *Down) Run() {
@@ -142,8 +153,10 @@ func (d *Down) waitForsignal() bool {
 
 	for {
 		select {
-		case c := <-d.cControl:
-
+		case c, ok := <-d.cControl:
+			if !ok {
+				return true
+			}
 			switch c {
 			case Start:
 				if d.state == ReadyToGo {
@@ -162,7 +175,10 @@ func (d *Down) waitForsignal() bool {
 			case Stop:
 				return true
 			}
-		case r := <-d.cResend:
+		case r, ok := <-d.cResend:
+			if !ok {
+				return true
+			}
 			if d.pendingAcks != 0 {
 				d.pendingAcks--
 			}
@@ -178,6 +194,9 @@ func (d *Down) waitForsignal() bool {
 					return false
 				}
 			}
+			// execution reached here means
+			// resend slots is full
+			d.resends = append(d.resends, r)
 			return false
 		}
 
@@ -222,9 +241,26 @@ func (d *Down) packAndSend(b []byte) {
 
 func (d *Down) queueFree() {
 	logg.Debug("Freeing downloader service")
-
+	d.manager.closeService(d)
 }
 
 func (d *Down) Close() {
 
+	select {
+	case _, ok := <-d.cControl:
+		if ok {
+			close(d.cControl)
+		}
+	default:
+		close(d.cControl)
+	}
+
+	select {
+	case _, ok := <-d.cResend:
+		if ok {
+			close(d.cResend)
+		}
+	default:
+		close(d.cResend)
+	}
 }
