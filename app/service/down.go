@@ -10,7 +10,11 @@ import (
 	"github.com/indrenicloud/tricloud-agent/wire"
 )
 
-const ChunkSize = 512
+const (
+	ChunkSize = 500
+	AckSlots  = 3
+	HeadSize  = int(unsafe.Sizeof(DownlodMsg{}) + unsafe.Sizeof(wire.Header{}))
+)
 
 const (
 	Start byte = iota
@@ -47,13 +51,32 @@ type DownlodMsg struct {
 
 // Down is Downloader service
 type Down struct {
-	fileName string
-	state    byte
-	cControl chan byte
+	fileName  string
+	currOffet int64
+	backRead  int64
+	state     byte
+	cControl  chan ControlSignal
+	out       chan []byte
+	acks      []int64
+	resends   []int64
 }
 
-func newDown() *Down {
-	return &Down{}
+func newDown(fname string, out chan []byte) *Down {
+
+	ackslice := make([]int64, AckSlots)
+	for i := range ackslice {
+		ackslice[i] = -1
+	}
+
+	return &Down{
+		fileName:  fname,
+		currOffet: 0,
+		backRead:  -1,
+		state:     ReadyToGo,
+		cControl:  make(chan ControlSignal),
+		out:       out,
+		acks:      ackslice,
+	}
 }
 
 func (d *Down) Consume([]byte) {
@@ -61,7 +84,7 @@ func (d *Down) Consume([]byte) {
 }
 
 func (d *Down) Run() {
-	defer d.queueFree(nil)
+	defer d.queueFree()
 
 	f, err := os.Open(d.fileName)
 	if err != nil {
@@ -71,57 +94,97 @@ func (d *Down) Run() {
 
 	//h := sha256.New()
 
-	headsize := int(unsafe.Sizeof(DownlodMsg{}) + unsafe.Sizeof(wire.Header{}))
 	logg.Debug("Header size")
-	logg.Debug(headsize)
+	logg.Debug(HeadSize)
 
 	reader := bufio.NewReader(f)
 
 	for {
-		wholepacket := make([]byte, (ChunkSize + headsize))
+		wholepacket := make([]byte, (ChunkSize + HeadSize))
 		fileContent := wholepacket[:ChunkSize]
+
+		exit := d.waitForsignal()
+		if exit {
+			return
+		}
+
+		d.nextOffset()
 
 		n, err := reader.Read(fileContent)
 		if err != nil {
 			if err == io.EOF {
 				// emit here
-				d.packAndSend(fileContent[:n+headsize])
-				d.queueFree(nil)
+				d.packAndSend(fileContent[:n])
 				break
 			}
 			logg.Debug(err)
 			os.Exit(1)
 		}
 		// emit here
-		d.packAndSend(fileContent[:n+headsize])
-		d.waitForsignal()
+		d.packAndSend(fileContent[:n])
+
 	}
 	// job finished send hash maybe
 	//fmt.Printf("%x", h.Sum(nil))
 }
 
-func (d *Down) waitForsignal() {
+func (d *Down) waitForsignal() bool {
+
+	// check if we have ack slot open
+	// if don't wait just send another packet
+	for _, a := range d.acks {
+		if a == -1 {
+			return false
+		}
+	}
+
 	for {
 		select {
 		case c := <-d.cControl:
-			switch c {
+
+			switch c.signal {
 			case Start:
+				return false
 				//
 			case Ack:
+				ack, ok := c.data.(int64)
+				if ok {
+					for i, a := range d.acks {
+						if a == ack {
+							d.acks[i] = -1
+							return false
+						}
+					}
+				}
 				//pass
 			case Resend:
-				//pass
+				_, ok := c.data.(int64)
+				if ok {
+					// add to resend if it doesnot exist
+					// remove pending ack of that offset
+					//
+				}
+
+				return false
 			case Pause:
-				//pass
+				//
 			case Resume:
-				//pass
+				return false
 			case Stop:
-				//pass
+				return true
 			}
 		}
 
 	}
 
+}
+
+func (d *Down) nextOffset() {
+	if len(d.resends) == 0 {
+		// seek(d.offset)
+		return
+	}
+	return
 }
 
 func (d *Down) packAndSend(b []byte) {
@@ -129,11 +192,8 @@ func (d *Down) packAndSend(b []byte) {
 
 }
 
-func (d *Down) queueFree(err error) {
+func (d *Down) queueFree() {
 	logg.Debug("Freeing downloader service")
-	if err != nil {
-		logg.Debug(err)
-	}
 
 }
 
