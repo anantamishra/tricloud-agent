@@ -1,21 +1,20 @@
-package service_test
+package main
 
 import (
 	"encoding/binary"
 	"fmt"
 	"sync"
-	"testing"
 	"time"
 
 	"github.com/indrenicloud/tricloud-agent/app/service"
 	"github.com/indrenicloud/tricloud-agent/wire"
 )
 
-func TestService(t *testing.T) {
+func main() {
 	out := make(chan []byte)
 
 	go func() {
-		tt := time.NewTimer(5 * time.Second)
+		tt := time.NewTimer(5 * time.Minute)
 
 		for {
 			select {
@@ -33,7 +32,6 @@ func TestService(t *testing.T) {
 
 			case <-tt.C:
 				print("exitting")
-				return
 			}
 		}
 	}()
@@ -42,7 +40,7 @@ func TestService(t *testing.T) {
 
 	//researchdata.txt
 	dm := wire.StartServiceReq{
-		Options:     []string{"service_test.go"},
+		Options:     []string{"abc.txt"},
 		ServiceType: byte(wire.CMD_DOWNLOAD_SERVICE),
 	}
 
@@ -63,4 +61,5 @@ func TestService(t *testing.T) {
 
 	wg.Wait()
 	m.Close()
+
 }
