@@ -39,9 +39,9 @@ const (
 )
 
 type DownlodMsg struct {
-	Offset  int64
 	Control byte
 	ID      byte
+	Offset  int64
 }
 
 // Down is Downloader service
@@ -68,7 +68,7 @@ func newDown(fname string, m *Manager, out chan []byte, cid wire.UID) *Down {
 	return &Down{
 		fileName:    fname,
 		manager:     m,
-		currOffet:   -1,
+		currOffet:   0,
 		nOffset:     -1,
 		state:       ReadyToGo,
 		cControl:    make(chan byte),
@@ -94,6 +94,7 @@ func (d *Down) Consume(b []byte) {
 }
 
 func (d *Down) Run() {
+	logg.Debug("Running dl")
 	defer d.queueFree()
 
 	f, err := os.Open(d.fileName)
@@ -104,8 +105,10 @@ func (d *Down) Run() {
 
 	//h := sha256.New()
 
-	logg.Debug("Header size")
-	logg.Debug(HeadSize)
+	//logg.Debug("Header size")
+	//logg.Debug(HeadSize)
+	//logg.Debug(unsafe.Sizeof(DownlodMsg{}))
+	d.state = Running
 
 	reader := bufio.NewReader(f)
 
@@ -121,6 +124,7 @@ func (d *Down) Run() {
 		d.nextOffset()
 		d.nOffset, err = f.Seek(d.nOffset, 0)
 		if err != nil {
+			logg.Debug(err)
 			logg.Debug("could not seek")
 			return
 		}
@@ -134,7 +138,7 @@ func (d *Down) Run() {
 					return
 				}
 				d.state = Done
-				continue
+				//continue
 			}
 			logg.Debug(err)
 			return
@@ -246,6 +250,7 @@ func (d *Down) packAndSend(b []byte) {
 		Flow:    wire.AgentToUser,
 	}
 	b = wire.AttachHeader(&head, b)
+	//d.pendingAcks++
 	d.out <- b
 }
 

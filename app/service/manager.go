@@ -24,9 +24,11 @@ func NewManager(out chan []byte) *Manager {
 func (m *Manager) addService(h *wire.Header, req *wire.StartServiceReq) {
 	m.lServices.Lock()
 	defer m.lServices.Unlock()
+	logg.Debug("add service")
 
 	s := serviceBuilder(h, m, req, m.out)
 	if s == nil {
+		logg.Debug("did notget anything")
 		return
 	}
 
@@ -36,6 +38,10 @@ func (m *Manager) addService(h *wire.Header, req *wire.StartServiceReq) {
 		m.services[h.Connid] = perUIDservices
 	}
 	perUIDservices[h.CmdType] = s
+
+	logg.Debug("start the engine")
+	go s.Run()
+
 }
 
 func (m *Manager) getService(h *wire.Header) Servicer {
@@ -53,6 +59,7 @@ func (m *Manager) getService(h *wire.Header) Servicer {
 }
 
 func (m *Manager) Consume(h *wire.Header, data []byte) {
+	logg.Debug("consume called")
 
 	if h.CmdType == wire.CMD_START_SERVICE {
 		ssrq := &wire.StartServiceReq{}
