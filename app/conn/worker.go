@@ -4,15 +4,18 @@ import (
 	"context"
 	"os"
 
-	"github.com/indrenicloud/tricloud-agent/wire"
-
 	"github.com/indrenicloud/tricloud-agent/app/cmd"
 	"github.com/indrenicloud/tricloud-agent/app/logg"
+	"github.com/indrenicloud/tricloud-agent/app/service"
+	"github.com/indrenicloud/tricloud-agent/wire"
 )
 
 // Worker coroutine, it recives packet, decodes it and runs functions commandbuff
 // bashed on command type
 func (c *Connection) Worker() {
+
+	m := service.NewManager(c.Out)
+	defer m.Close()
 
 	for {
 		select {
@@ -28,12 +31,19 @@ func (c *Connection) Worker() {
 			logg.Debug("processing server cmd")
 
 			cmdFunc, ok := cmd.CommandBuffer[header.CmdType]
-			if !ok {
-				logg.Log("Command not implemented")
-				break
+			if ok {
+				newctx1, _ := context.WithCancel(c.workerctx)
+				go cmdFunc(inData, c.Out, newctx1)
+				continue
 			}
-			newctx1, _ := context.WithCancel(c.workerctx)
-			go cmdFunc(inData, c.Out, newctx1)
+
+			if header.CmdType == wire.CMD_START_SERVICE ||
+				header.CmdType == wire.CMD_DOWNLOAD_SERVICE {
+
+				go m.Consume(header, inData)
+
+			}
+
 		}
 	}
 
