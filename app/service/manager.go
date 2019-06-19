@@ -25,7 +25,7 @@ func (m *Manager) addService(h *wire.Header, req *wire.StartServiceReq) {
 	m.lServices.Lock()
 	defer m.lServices.Unlock()
 
-	s := serviceBuilder(h, m, req)
+	s := serviceBuilder(h, m, req, m.out)
 	if s == nil {
 		return
 	}

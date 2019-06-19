@@ -229,10 +229,10 @@ type FmActionRes struct {
 type FmActionRes map[string]interface{}
 
 type StartServiceReq struct {
-	Interval  int64 //duration in sec
-	Timeout   int64 // 0 means no timeouts
-	Options   []string
-	ServiceID int32 // should be CommandType
+	Interval    int64 //duration in sec
+	Timeout     int64 // 0 means no timeouts
+	Options     []string
+	ServiceType byte // should be CommandType
 }
 
 type DownloaderReq struct {

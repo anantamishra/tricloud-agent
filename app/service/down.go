@@ -129,6 +129,10 @@ func (d *Down) Run() {
 		if err != nil {
 			if err == io.EOF {
 				d.packAndSend(fileContent[:n])
+				if d.state == QueueFree {
+					//should be rare
+					return
+				}
 				d.state = Done
 				continue
 			}
@@ -145,6 +149,10 @@ func (d *Down) waitForsignal() bool {
 
 	// check if we have ack slot open
 	// if don't wait just send another packet
+	if d.state == QueueFree {
+		return true
+	}
+
 	if d.pendingAcks < AckSlots {
 		if d.state != Done {
 			return false
@@ -169,10 +177,12 @@ func (d *Down) waitForsignal() bool {
 					return false
 				}
 			case Pause:
-				//
+				d.state = Paused
 			case Resume:
+				d.state = Running
 				return false
 			case Stop:
+				d.state = Done
 				return true
 			}
 		case r, ok := <-d.cResend:
@@ -241,10 +251,13 @@ func (d *Down) packAndSend(b []byte) {
 
 func (d *Down) queueFree() {
 	logg.Debug("Freeing downloader service")
+	d.state = QueueFree
 	d.manager.closeService(d)
 }
 
 func (d *Down) Close() {
+
+	// is this excessive/redundend ¯\_(ツ)_/¯
 
 	select {
 	case _, ok := <-d.cControl:
