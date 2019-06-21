@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	ChunkSize = 500
+	ChunkSize = 1024*1024*10
 	AckSlots  = 3
 	HeadSize  = int(unsafe.Sizeof(DownlodMsg{}) + unsafe.Sizeof(wire.Header{}))
 )
