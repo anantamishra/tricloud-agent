@@ -132,7 +132,7 @@ func (d *Down) Run() {
 		n, err := reader.Read(fileContent)
 		if err != nil {
 			if err == io.EOF {
-				d.packAndSend(fileContent[:n])
+				d.packAndSend(fileContent[:n], true)
 				if d.state == QueueFree {
 					//should be rare
 					return
@@ -144,7 +144,7 @@ func (d *Down) Run() {
 			return
 		}
 		// emit here
-		d.packAndSend(fileContent[:n])
+		d.packAndSend(fileContent[:n], false)
 
 	}
 }
@@ -230,7 +230,7 @@ func (d *Down) nextOffset() {
 	d.nOffset = d.currOffet
 }
 
-func (d *Down) packAndSend(b []byte) {
+func (d *Down) packAndSend(b []byte, last bool) {
 
 	if d.currOffet == d.nOffset {
 
@@ -240,7 +240,12 @@ func (d *Down) packAndSend(b []byte) {
 
 	b2 := make([]byte, 10)
 	binary.BigEndian.PutUint64(b2, uint64(d.nOffset))
-	b2[8] = File
+	if last {
+		b2[8] = Finished
+	} else {
+		b2[8] = File
+	}
+
 	b2[9] = 0
 	b = append(b, b2...)
 
