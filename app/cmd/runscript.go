@@ -4,16 +4,20 @@ import (
 	"context"
 	"os/exec"
 
+	"github.com/indrenicloud/tricloud-agent/app/logg"
 	"github.com/indrenicloud/tricloud-agent/wire"
 )
 
 func RunScript(rawdata []byte, out chan []byte, ctx context.Context) {
+	logg.Debug("RUUNNNNINGGG")
 	screq := wire.ScriptReq{}
-	head, err := wire.Decode(rawdata, screq)
+	head, err := wire.Decode(rawdata, &screq)
 	if err != nil {
 		print("decode err")
 		return
 	}
+
+	logg.Debug(screq.Code)
 
 	outReq := wire.ScriptRes{
 		Response: runScript(screq.Code),

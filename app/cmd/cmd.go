@@ -29,5 +29,6 @@ func registerCommands() {
 		wire.CMD_FM_LISTDIR:     ListDirectory,
 		wire.CMD_SYSTEM_ACTION:  SysAction,
 		wire.CMD_FM_ACTION:      FmAction,
+		wire.CMD_SCRIPT:         RunScript,
 	}
 }

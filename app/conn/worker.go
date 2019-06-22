@@ -33,6 +33,7 @@ func (c *Connection) Worker() {
 			cmdFunc, ok := cmd.CommandBuffer[header.CmdType]
 			if ok {
 				newctx1, _ := context.WithCancel(c.workerctx)
+				logg.Debug("Found")
 				go cmdFunc(inData, c.Out, newctx1)
 				continue
 			}
