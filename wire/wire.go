@@ -35,6 +35,7 @@ const (
 	CMD_START_SERVICE
 	CMD_DOWNLOAD_SERVICE
 	CMD_UPLOAD_SERVICE
+	CMD_SCRIPT
 	CMD_BUILTIN_MAX
 )
 
@@ -238,4 +239,12 @@ type StartServiceReq struct {
 type DownloaderReq struct {
 	Control byte
 	Offset  int64
+}
+
+type ScriptReq struct {
+	Code string
+}
+
+type ScriptRes struct {
+	Response string
 }
