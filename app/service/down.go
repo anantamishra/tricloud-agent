@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	ChunkSize = 1024*1024*10
+	ChunkSize = 1024 * 1024 * 10
 	AckSlots  = 3
 	HeadSize  = int(unsafe.Sizeof(DownlodMsg{}) + unsafe.Sizeof(wire.Header{}))
 )
@@ -112,8 +112,15 @@ func (d *Down) Run() {
 
 	reader := bufio.NewReader(f)
 
+	buffers := [3][]byte{
+		make([]byte, (ChunkSize + HeadSize)),
+		make([]byte, (ChunkSize + HeadSize)),
+		make([]byte, (ChunkSize + HeadSize)),
+	}
+	bufindex := 0
+
 	for {
-		wholepacket := make([]byte, (ChunkSize + HeadSize))
+		wholepacket := buffers[bufindex]
 		fileContent := wholepacket[:ChunkSize]
 
 		exit := d.waitForsignal()
@@ -145,7 +152,11 @@ func (d *Down) Run() {
 		}
 		// emit here
 		d.packAndSend(fileContent[:n], false)
-
+		if bufindex == 2 {
+			bufindex = 0
+		} else {
+			bufindex++
+		}
 	}
 }
 
